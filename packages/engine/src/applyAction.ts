@@ -11,6 +11,9 @@ import type { GameState } from './state';
  * events the action caused, or a typed error; the given state is never changed.
  */
 export const applyAction = (state: GameState, action: Action): ApplyResult => {
+  if (typeof action !== 'object' || action === null) {
+    return engineError('invalid-action', 'An action must be an object');
+  }
   switch (action.type) {
     case 'call-trump':
       return callTrump(state, action);

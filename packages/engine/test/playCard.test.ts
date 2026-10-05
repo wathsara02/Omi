@@ -156,3 +156,34 @@ describe('play-card', () => {
     );
   });
 });
+
+describe('play-card with an untrusted card object', () => {
+  const hands = [cards('QH 7C'), cards('7H KC'), cards('8D 8H'), cards('9D 9H')] as const;
+
+  test('drops extra properties, so a card cannot carry a hidden message', () => {
+    const marked = { suit: 'hearts', rank: 'Q', secret: 'hello partner' } as const;
+
+    const { state, events } = mustApply(playingState({ hands }), {
+      type: 'play-card',
+      seat: 0,
+      card: marked,
+    });
+
+    expect(state.currentTrick?.plays).toEqual([{ seat: 0, card: { suit: 'hearts', rank: 'Q' } }]);
+    expect(events).toEqual([{ type: 'card-played', seat: 0, card: { suit: 'hearts', rank: 'Q' } }]);
+  });
+
+  test('is not affected when the caller changes the card object afterwards', () => {
+    const mutable = { suit: 'hearts', rank: 'Q' } as { suit: 'hearts'; rank: 'Q' | 'A' };
+
+    const { state, events } = mustApply(playingState({ hands }), {
+      type: 'play-card',
+      seat: 0,
+      card: mutable,
+    });
+    mutable.rank = 'A';
+
+    expect(state.currentTrick?.plays[0]?.card).toEqual(card('QH'));
+    expect(events).toEqual([{ type: 'card-played', seat: 0, card: card('QH') }]);
+  });
+});

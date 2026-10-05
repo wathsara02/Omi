@@ -26,12 +26,15 @@ const validatePlay = (state: GameState, action: PlayCardAction): Result<ValidPla
   if (action.seat !== state.turn) {
     return engineError('not-your-turn', 'It is not this seat’s turn to play');
   }
-  const { seat, card } = action;
-  if (!isCard(card)) {
+  const { seat } = action;
+  if (!isCard(action.card)) {
     return engineError('invalid-action', 'Not a card from the 32-card deck');
   }
   const hand = state.hands[seat];
-  if (!holds(hand, card)) {
+  // Use the engine's own card object from here on, never the caller's: theirs
+  // may carry extra properties or be changed after this call returns.
+  const card = hand.find((held) => cardEquals(held, action.card));
+  if (card === undefined) {
     return engineError('card-not-in-hand', 'The player does not hold that card');
   }
   if (!holds(legalCards(hand, ledSuitOf(trick)), card)) {

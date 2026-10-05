@@ -64,7 +64,23 @@ const findConfigProblem = (config: RulesConfig): string | null => {
   return null;
 };
 
+/** A fresh object with only the known settings, so nothing else rides along to clients. */
+const copyConfig = (config: RulesConfig): RulesConfig => ({
+  turnOrder: config.turnOrder,
+  tokenTarget: config.tokenTarget,
+  tokensCallingTeamWin: config.tokensCallingTeamWin,
+  tokensDefendingTeamWin: config.tokensDefendingTeamWin,
+  tokensKapothi: config.tokensKapothi,
+  tieCarryOver: config.tieCarryOver,
+  tieCarryOverStacks: config.tieCarryOverStacks,
+  blindTrumpAllowed: config.blindTrumpAllowed,
+  playAllEightTricks: config.playAllEightTricks,
+  dealerRotation: config.dealerRotation,
+  turnTimerSeconds: config.turnTimerSeconds,
+  reconnectHoldSeconds: config.reconnectHoldSeconds,
+});
+
 export const validateConfig = (config: RulesConfig): Result<RulesConfig, EngineError> => {
   const problem = findConfigProblem(config);
-  return problem === null ? ok(config) : engineError('invalid-config', problem);
+  return problem === null ? ok(copyConfig(config)) : engineError('invalid-config', problem);
 };

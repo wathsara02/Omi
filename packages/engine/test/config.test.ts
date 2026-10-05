@@ -52,3 +52,23 @@ describe('validateConfig', () => {
     if (!result.ok) expect(result.error.code).toBe('invalid-config');
   });
 });
+
+describe('validateConfig with an untrusted config object', () => {
+  test('returns a copy holding only the known settings', () => {
+    const withExtra = { ...DEFAULT_RULES, note: 'not a rule' } as RulesConfig;
+
+    const result = validateConfig(withExtra);
+
+    expect(result).toEqual({ ok: true, value: DEFAULT_RULES });
+    expect(result.ok && Object.keys(result.value)).not.toContain('note');
+  });
+
+  test('is not affected when the caller changes the config afterwards', () => {
+    const mutable = { ...DEFAULT_RULES };
+
+    const result = validateConfig(mutable);
+    mutable.tokenTarget = 1;
+
+    expect(result.ok && result.value.tokenTarget).toBe(10);
+  });
+});

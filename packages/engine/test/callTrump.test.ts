@@ -109,3 +109,14 @@ describe('applyAction', () => {
     );
   });
 });
+
+describe('applyAction with a malformed action', () => {
+  test.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['a number', 5],
+    ['an empty object', {}],
+  ])('rejects %s without throwing', (_label, action) => {
+    expect(errorCodeOf(mustCreate(1), action as unknown as Action)).toBe('invalid-action');
+  });
+});
