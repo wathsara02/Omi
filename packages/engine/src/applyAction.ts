@@ -20,7 +20,7 @@ export const applyAction = (state: GameState, action: Action): ApplyResult => {
     case 'play-card':
       return playCard(state, action);
     case 'next-round':
-      return nextRound(state);
+      return nextRound(state, action);
     default:
       return engineError('invalid-action', 'Unknown action type');
   }

@@ -5,14 +5,21 @@ import { DEFAULT_RULES, type RulesConfig } from '../src/config';
 import { createMatch } from '../src/deal';
 import type { Applied, GameEvent } from '../src/events';
 import type { EngineErrorCode } from '../src/result';
+import { seedFromInteger } from '../src/rng';
 import type { Seat } from '../src/seats';
 import type { GameState } from '../src/state';
 
 export const mustCreate = (seed: number, config: RulesConfig = DEFAULT_RULES): GameState => {
-  const result = createMatch(config, seed);
+  const result = createMatch(config, seedFromInteger(seed));
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
 };
+
+/** A next-round action with a deterministic seed. */
+export const nextRound = (seed = 99): Action => ({
+  type: 'next-round',
+  seed: seedFromInteger(seed),
+});
 
 export const mustApply = (state: GameState, action: Action): Applied => {
   const result = applyAction(state, action);
@@ -118,3 +125,7 @@ export const deepFreeze = <T>(value: T): T => {
   childrenOf(value).forEach(deepFreeze);
   return Object.freeze(value);
 };
+
+/** Every number found anywhere inside a value, however deeply nested. */
+export const collectNumbers = (value: unknown): number[] =>
+  typeof value === 'number' ? [value] : childrenOf(value).flatMap(collectNumbers);

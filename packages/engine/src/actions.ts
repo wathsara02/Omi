@@ -1,4 +1,5 @@
 import type { Card, Suit } from './cards';
+import type { Seed } from './rng';
 import type { Seat } from './seats';
 
 export interface CallTrumpAction {
@@ -13,9 +14,14 @@ export interface PlayCardAction {
   readonly card: Card;
 }
 
-/** Sent by the server, not by a player, once it is ready to deal again. */
+/**
+ * Sent by the server, not by a player, once it is ready to deal again. Each
+ * round is shuffled from its own fresh seed, so one round's cards reveal
+ * nothing about the next deal.
+ */
 export interface NextRoundAction {
   readonly type: 'next-round';
+  readonly seed: Seed;
 }
 
 export type Action = CallTrumpAction | PlayCardAction | NextRoundAction;

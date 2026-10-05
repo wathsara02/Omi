@@ -3,11 +3,12 @@ import { describe, expect, test } from 'vitest';
 import { cardKey, createDeck } from '../src/cards';
 import { DEFAULT_RULES } from '../src/config';
 import { createMatch, dealBatch } from '../src/deal';
+import { seedFromInteger, type Seed } from '../src/rng';
 import { SEATS, mapSeats, nextSeat, seatOrderFrom } from '../src/seats';
 import type { GameState } from '../src/state';
 
 const mustCreate = (seed: number, config = DEFAULT_RULES): GameState => {
-  const result = createMatch(config, seed);
+  const result = createMatch(config, seedFromInteger(seed));
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
 };
@@ -50,10 +51,23 @@ describe('dealBatch', () => {
 
 describe('createMatch', () => {
   test('rejects an invalid config', () => {
-    const result = createMatch({ ...DEFAULT_RULES, tokenTarget: 0 }, 1);
+    const result = createMatch({ ...DEFAULT_RULES, tokenTarget: 0 }, seedFromInteger(1));
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('invalid-config');
+  });
+
+  test.each([
+    ['a plain number', 7],
+    ['too few words', [1, 2, 3]],
+    ['a fractional word', [1, 2, 3, 0.5]],
+    ['NaN', [1, 2, 3, Number.NaN]],
+    ['a word past 32 bits', [1, 2, 3, 2 ** 32]],
+  ])('rejects a seed that is %s', (_label, seed) => {
+    const result = createMatch(DEFAULT_RULES, seed as unknown as Seed);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('invalid-seed');
   });
 
   test('starts in the trump-calling phase with empty scores', () => {

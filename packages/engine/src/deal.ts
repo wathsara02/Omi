@@ -1,7 +1,7 @@
 import { createDeck, type Card } from './cards';
 import { validateConfig, type RulesConfig } from './config';
-import { ok, type EngineError, type Result } from './result';
-import { randomInt, seedRng, shuffle, type RngState } from './rng';
+import { engineError, ok, type EngineError, type Result } from './result';
+import { isSeed, randomInt, seedRng, shuffle, type RngState, type Seed } from './rng';
 import {
   SEATS,
   mapSeats,
@@ -76,9 +76,13 @@ export const startRound = (setup: RoundSetup): GameState => {
   };
 };
 
-export const createMatch = (config: RulesConfig, seed: number): Result<GameState, EngineError> => {
+/** `seed` must be 128 fresh bits from a cryptographic source; see rng.ts. */
+export const createMatch = (config: RulesConfig, seed: Seed): Result<GameState, EngineError> => {
   const validated = validateConfig(config);
   if (!validated.ok) return validated;
+  if (!isSeed(seed)) {
+    return engineError('invalid-seed', 'A seed must be four unsigned 32-bit integers');
+  }
 
   const dealerPick = randomInt(seedRng(seed), SEATS.length);
   return ok(

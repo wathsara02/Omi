@@ -171,7 +171,7 @@ describe('viewFor', () => {
     const state = midTrick();
     const hiddenChanged: GameState = {
       ...state,
-      rng: state.rng + 1,
+      rng: [1, 2, 3, 4],
       stock: cards('AS KS'),
       hands: [state.hands[0], state.hands[1], cards('JC QC'), cards('JS QS')],
     };

@@ -10,9 +10,11 @@ import { viewFor } from '../src/view';
 import {
   collectCards,
   collectKeys,
+  collectNumbers,
   deepFreeze,
   mustApply,
   mustCreate,
+  nextRound,
   playLastTrick,
 } from './helpers';
 import { playAutoMatch, playRandomMatch, type PlayedMatch } from './matchDriver';
@@ -72,10 +74,24 @@ describe('events contain only public information', () => {
   test('dealing reveals no cards: trump-called and round-started carry none', () => {
     const dealt = mustCreate(8);
     const called = mustApply(dealt, { type: 'call-trump', seat: dealt.caller, suit: 'clubs' });
-    const restarted = mustApply(playLastTrick().state, { type: 'next-round' });
+    const restarted = mustApply(playLastTrick().state, nextRound());
 
     expect(collectCards(called.events)).toEqual([]);
     expect(collectCards(restarted.events)).toEqual([]);
+  });
+});
+
+describe('the rng state stays on the server', () => {
+  test('no number in any view or event equals a word of the rng state', () => {
+    forEveryMatch(({ steps }) => {
+      const leaks = steps.flatMap(({ after, events }) => {
+        const words = new Set<number>(after.rng);
+        const sent = [events, ...SEATS.map((seat) => viewFor(after, seat))];
+        return collectNumbers(sent).filter((value) => words.has(value));
+      });
+
+      expect(leaks).toEqual([]);
+    });
   });
 });
 
@@ -156,7 +172,7 @@ describe('match invariants', () => {
     while (state.phase !== 'match-over') {
       const result =
         state.phase === 'round-scored'
-          ? applyAction(state, { type: 'next-round' })
+          ? applyAction(state, nextRound(state.roundNumber))
           : applyAutoAction(state);
       if (!result.ok) throw new Error(result.error.message);
       state = deepFreeze(result.value.state);
@@ -190,13 +206,13 @@ describe('seeded replay', () => {
       actions: steps.length,
     }).toMatchInlineSnapshot(`
       {
-        "actions": 713,
-        "rounds": 21,
+        "actions": 373,
+        "rounds": 11,
         "tokens": {
-          "A": 9,
-          "B": 11,
+          "A": 10,
+          "B": 4,
         },
-        "winner": "B",
+        "winner": "A",
       }
     `);
   });

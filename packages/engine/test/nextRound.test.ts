@@ -1,13 +1,21 @@
 import { describe, expect, test } from 'vitest';
 import { cardKey } from '../src/cards';
 import { DEFAULT_RULES } from '../src/config';
-import { card, errorCodeOf, mustApply, mustCreate, playLastTrick, playingState } from './helpers';
+import {
+  card,
+  errorCodeOf,
+  mustApply,
+  mustCreate,
+  nextRound,
+  playLastTrick,
+  playingState,
+} from './helpers';
 
 describe('next-round', () => {
   test('passes the deal to the previous trump caller', () => {
     const { state: scored } = playLastTrick();
 
-    const { state } = mustApply(scored, { type: 'next-round' });
+    const { state } = mustApply(scored, nextRound());
 
     expect(scored.caller).toBe(0);
     expect(state.dealer).toBe(0);
@@ -18,7 +26,7 @@ describe('next-round', () => {
   test('deals a fresh round and waits for trump', () => {
     const { state: scored } = playLastTrick();
 
-    const { state } = mustApply(scored, { type: 'next-round' });
+    const { state } = mustApply(scored, nextRound());
 
     expect(state.phase).toBe('calling-trump');
     expect(state.roundNumber).toBe(scored.roundNumber + 1);
@@ -31,7 +39,7 @@ describe('next-round', () => {
   test('clears the tricks of the finished round', () => {
     const { state: scored } = playLastTrick();
 
-    const { state } = mustApply(scored, { type: 'next-round' });
+    const { state } = mustApply(scored, nextRound());
 
     expect(state.tricksWon).toEqual({ A: 0, B: 0 });
     expect(state.currentTrick).toBeNull();
@@ -42,7 +50,7 @@ describe('next-round', () => {
   test('keeps the tokens', () => {
     const { state: scored } = playLastTrick({ tokens: { A: 2, B: 5 } });
 
-    const { state } = mustApply(scored, { type: 'next-round' });
+    const { state } = mustApply(scored, nextRound());
 
     expect(state.tokens).toEqual({ A: 3, B: 5 });
   });
@@ -50,33 +58,52 @@ describe('next-round', () => {
   test('passes the deal on as normal after a tie and keeps the carry-over', () => {
     const { state: tied } = playLastTrick({}, '7S');
 
-    const { state } = mustApply(tied, { type: 'next-round' });
+    const { state } = mustApply(tied, nextRound());
 
     expect(state.dealer).toBe(0);
     expect(state.carryOver).toBe(1);
   });
 
-  test('shuffles again, so the new deal differs from the last', () => {
-    const first = mustCreate(1);
-    const { state: scored } = playLastTrick({ rng: first.rng });
+  test('shuffles from the seed it is given, whatever the previous rng state was', () => {
+    const { state: scored } = playLastTrick();
+    const otherHistory = { ...scored, rng: [1, 2, 3, 4] as const };
 
-    const { state } = mustApply(scored, { type: 'next-round' });
+    const { state } = mustApply(scored, nextRound(5));
 
-    expect(state.rng).not.toBe(scored.rng);
-    expect(state.hands.flat().map(cardKey)).not.toEqual(first.hands.flat().map(cardKey));
+    expect(mustApply(otherHistory, nextRound(5)).state).toEqual(state);
+    expect(state.rng).not.toEqual(scored.rng);
+  });
+
+  test('deals differently for a different seed', () => {
+    const { state: scored } = playLastTrick();
+
+    const first = mustApply(scored, nextRound(5)).state;
+    const second = mustApply(scored, nextRound(6)).state;
+
+    expect(first.hands.flat().map(cardKey)).not.toEqual(second.hands.flat().map(cardKey));
+  });
+
+  test.each([
+    ['is missing', undefined],
+    ['is a plain number', 7],
+    ['has a fractional word', [1, 2, 3, 0.5]],
+  ])('is rejected when the seed %s', (_label, seed) => {
+    const { state: scored } = playLastTrick();
+
+    expect(errorCodeOf(scored, { type: 'next-round', seed } as never)).toBe('invalid-action');
   });
 
   test('emits a round-started event', () => {
     const { state: scored } = playLastTrick();
 
-    const { events } = mustApply(scored, { type: 'next-round' });
+    const { events } = mustApply(scored, nextRound());
 
     expect(events).toEqual([{ type: 'round-started', roundNumber: 2, dealer: 0, caller: 1 }]);
   });
 
   test('is rejected while a round is still being played', () => {
-    expect(errorCodeOf(playingState(), { type: 'next-round' })).toBe('wrong-phase');
-    expect(errorCodeOf(mustCreate(1), { type: 'next-round' })).toBe('wrong-phase');
+    expect(errorCodeOf(playingState(), nextRound())).toBe('wrong-phase');
+    expect(errorCodeOf(mustCreate(1), nextRound())).toBe('wrong-phase');
   });
 });
 
@@ -127,7 +154,7 @@ describe('end of match', () => {
   test('accepts no further actions once the match is over', () => {
     const { state } = playLastTrick({ tokens: { A: 9, B: 4 } });
 
-    expect(errorCodeOf(state, { type: 'next-round' })).toBe('wrong-phase');
+    expect(errorCodeOf(state, nextRound())).toBe('wrong-phase');
     expect(errorCodeOf(state, { type: 'play-card', seat: 0, card: card('AH') })).toBe(
       'wrong-phase',
     );

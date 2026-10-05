@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { applyAutoAction, pickAutoCard, pickAutoTrump } from '../src/auto';
 import type { Card, Suit } from '../src/cards';
-import { seedRng } from '../src/rng';
+import { seedFromInteger, seedRng } from '../src/rng';
 import { card, cards, mustCreate, playLastTrick, playingState } from './helpers';
 
 const nonEmpty = (text: string): [Card, ...Card[]] => {
@@ -12,7 +12,10 @@ const nonEmpty = (text: string): [Card, ...Card[]] => {
 
 const trumpsOverSeeds = (hand: readonly Card[], seeds = 80): Set<Suit> =>
   new Set(
-    Array.from({ length: seeds }, (_unused, seed) => pickAutoTrump(hand, seedRng(seed)).value),
+    Array.from(
+      { length: seeds },
+      (_unused, seed) => pickAutoTrump(hand, seedRng(seedFromInteger(seed))).value,
+    ),
   );
 
 describe('pickAutoCard', () => {
@@ -44,7 +47,7 @@ describe('pickAutoCard', () => {
 
 describe('pickAutoTrump', () => {
   test('picks the suit held most', () => {
-    const rng = seedRng(1);
+    const rng = seedRng(seedFromInteger(1));
 
     expect(pickAutoTrump(cards('AH KH 7H 9S'), rng)).toEqual({ value: 'hearts', state: rng });
   });
@@ -60,9 +63,9 @@ describe('pickAutoTrump', () => {
   });
 
   test('advances the rng when it breaks a tie', () => {
-    const rng = seedRng(1);
+    const rng = seedRng(seedFromInteger(1));
 
-    expect(pickAutoTrump(cards('AH KH 7S 9S'), rng).state).not.toBe(rng);
+    expect(pickAutoTrump(cards('AH KH 7S 9S'), rng).state).not.toEqual(rng);
   });
 });
 
@@ -96,7 +99,7 @@ describe('applyAutoAction', () => {
 
     const result = applyAutoAction(state);
 
-    expect(result.ok && result.value.state.rng).not.toBe(state.rng);
+    expect(result.ok && result.value.state.rng).not.toEqual(state.rng);
     expect(applyAutoAction(state)).toEqual(result);
   });
 

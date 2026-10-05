@@ -7,6 +7,7 @@ export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
 
 export type EngineErrorCode =
   | 'invalid-config'
+  | 'invalid-seed'
   | 'invalid-action'
   | 'wrong-phase'
   | 'not-trump-caller'
