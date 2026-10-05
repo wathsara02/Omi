@@ -22,6 +22,13 @@ export const nextSeat = (seat: Seat, turnOrder: TurnOrder): Seat => {
   return ((seat + step) % SEAT_COUNT) as Seat;
 };
 
+/** All four seats in turn order, starting at `first`. */
+export const seatOrderFrom = (first: Seat, turnOrder: TurnOrder): PerSeat<Seat> => {
+  const second = nextSeat(first, turnOrder);
+  const third = nextSeat(second, turnOrder);
+  return [first, second, third, nextSeat(third, turnOrder)];
+};
+
 export const mapSeats = <T>(valueFor: (seat: Seat) => T): PerSeat<T> => [
   valueFor(0),
   valueFor(1),
