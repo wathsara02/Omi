@@ -13,6 +13,7 @@ export type ErrorCode =
   | 'rate-limited'
   | 'room-not-found'
   | 'room-full'
+  | 'server-full'
   | 'match-in-progress'
   | 'already-in-room'
   | 'not-in-room'
