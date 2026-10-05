@@ -11,7 +11,14 @@ export type GameEvent =
   | { readonly type: 'trump-called'; readonly seat: Seat; readonly suit: Suit }
   | { readonly type: 'card-played'; readonly seat: Seat; readonly card: Card }
   | { readonly type: 'trick-won'; readonly winner: Seat; readonly team: Team }
-  | { readonly type: 'round-scored'; readonly result: RoundResult; readonly tokens: TeamTally };
+  | { readonly type: 'round-scored'; readonly result: RoundResult; readonly tokens: TeamTally }
+  | { readonly type: 'match-won'; readonly winner: Team; readonly tokens: TeamTally }
+  | {
+      readonly type: 'round-started';
+      readonly roundNumber: number;
+      readonly dealer: Seat;
+      readonly caller: Seat;
+    };
 
 export interface Applied {
   readonly state: GameState;

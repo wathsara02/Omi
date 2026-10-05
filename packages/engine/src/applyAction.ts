@@ -1,6 +1,7 @@
 import type { Action } from './actions';
 import type { ApplyResult } from './events';
 import { callTrump } from './handlers/callTrump';
+import { nextRound } from './handlers/nextRound';
 import { playCard } from './handlers/playCard';
 import { engineError } from './result';
 import type { GameState } from './state';
@@ -15,6 +16,8 @@ export const applyAction = (state: GameState, action: Action): ApplyResult => {
       return callTrump(state, action);
     case 'play-card':
       return playCard(state, action);
+    case 'next-round':
+      return nextRound(state);
     default:
       return engineError('invalid-action', 'Unknown action type');
   }

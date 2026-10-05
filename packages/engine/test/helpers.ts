@@ -3,8 +3,9 @@ import { applyAction } from '../src/applyAction';
 import { isCard, type Card, type Suit } from '../src/cards';
 import { DEFAULT_RULES, type RulesConfig } from '../src/config';
 import { createMatch } from '../src/deal';
-import type { Applied } from '../src/events';
+import type { Applied, GameEvent } from '../src/events';
 import type { EngineErrorCode } from '../src/result';
+import type { Seat } from '../src/seats';
 import type { GameState } from '../src/state';
 
 export const mustCreate = (seed: number, config: RulesConfig = DEFAULT_RULES): GameState => {
@@ -57,3 +58,41 @@ export const errorCodeOf = (state: GameState, action: Action): EngineErrorCode |
   const result = applyAction(state, action);
   return result.ok ? null : result.error.code;
 };
+
+export interface Played {
+  readonly state: GameState;
+  readonly events: readonly GameEvent[];
+}
+
+/** Plays cards given as [seat, shorthand] pairs, collecting every event. */
+export const playSequence = (
+  state: GameState,
+  sequence: readonly (readonly [Seat, string])[],
+): Played =>
+  sequence.reduce<Played>(
+    (current, [seat, text]) => {
+      const applied = mustApply(current.state, { type: 'play-card', seat, card: card(text) });
+      return { state: applied.state, events: [...current.events, ...applied.events] };
+    },
+    { state, events: [] },
+  );
+
+/**
+ * Plays the eighth trick of a round from a state where Team A has 4 tricks and
+ * Team B has 3. Seat 0 leads the ace of hearts and wins, so Team A (the calling
+ * team) takes the round 5–3, unless `lastCard` is a trump for seat 3.
+ */
+export const playLastTrick = (overrides: Partial<GameState> = {}, lastCard = '9H'): Played =>
+  playSequence(
+    playingState({
+      hands: [cards('AH'), cards('7H'), cards('8H'), cards(lastCard)],
+      tricksWon: { A: 4, B: 3 },
+      ...overrides,
+    }),
+    [
+      [0, 'AH'],
+      [1, '7H'],
+      [2, '8H'],
+      [3, lastCard],
+    ],
+  );

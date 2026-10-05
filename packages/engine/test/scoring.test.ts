@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_RULES } from '../src/config';
 import { scoreRound } from '../src/scoring';
-import type { Seat, Team } from '../src/seats';
-import type { GameState } from '../src/state';
-import { card, cards, errorCodeOf, mustApply, playingState } from './helpers';
+import type { Team } from '../src/seats';
+import { card, errorCodeOf, playLastTrick } from './helpers';
 
 const score = (a: number, b: number, carryOver = 0, callingTeam: Team = 'A') =>
   scoreRound({ tricks: { A: a, B: b }, callingTeam, carryOver, config: DEFAULT_RULES });
@@ -78,29 +77,8 @@ describe('scoreRound', () => {
 });
 
 describe('finishing a round', () => {
-  // One card each; seat 0 leads the ace of hearts and wins unless seat 3 trumps.
-  const lastTrick = (overrides: Partial<GameState>, lastCard = '9H') => {
-    const state = playingState({
-      hands: [cards('AH'), cards('7H'), cards('8H'), cards(lastCard)],
-      ...overrides,
-    });
-    const sequence: readonly (readonly [Seat, string])[] = [
-      [0, 'AH'],
-      [1, '7H'],
-      [2, '8H'],
-      [3, lastCard],
-    ];
-    return sequence.reduce(
-      (current, [seat, text]) => {
-        const applied = mustApply(current.state, { type: 'play-card', seat, card: card(text) });
-        return { state: applied.state, events: [...current.events, ...applied.events] };
-      },
-      { state, events: [] as readonly unknown[] },
-    );
-  };
-
   test('scores the round once the eighth trick is played', () => {
-    const { state } = lastTrick({ tricksWon: { A: 4, B: 3 } });
+    const { state } = playLastTrick({ tricksWon: { A: 4, B: 3 } });
 
     expect(state.phase).toBe('round-scored');
     expect(state.tokens).toEqual({ A: 1, B: 0 });
@@ -110,14 +88,14 @@ describe('finishing a round', () => {
   });
 
   test('keeps the eighth trick visible as the previous trick', () => {
-    const { state } = lastTrick({ tricksWon: { A: 4, B: 3 } });
+    const { state } = playLastTrick({ tricksWon: { A: 4, B: 3 } });
 
     expect(state.previousTrick?.winner).toBe(0);
     expect(state.previousTrick?.plays).toHaveLength(4);
   });
 
   test('emits round-scored after the last trick-won', () => {
-    const { state, events } = lastTrick({ tricksWon: { A: 4, B: 3 } });
+    const { state, events } = playLastTrick({ tricksWon: { A: 4, B: 3 } });
 
     expect(events.slice(-2)).toEqual([
       { type: 'trick-won', winner: 0, team: 'A' },
@@ -126,7 +104,7 @@ describe('finishing a round', () => {
   });
 
   test('plays on to all 8 tricks even after a team has won 5', () => {
-    const { state } = lastTrick({ tricksWon: { A: 5, B: 1 } });
+    const { state } = playLastTrick({ tricksWon: { A: 5, B: 1 } });
 
     expect(state.phase).toBe('playing');
     expect(state.tricksWon).toEqual({ A: 6, B: 1 });
@@ -134,7 +112,7 @@ describe('finishing a round', () => {
   });
 
   test('awards nothing on a 4–4 tie and carries 1 token over', () => {
-    const { state } = lastTrick({ tricksWon: { A: 4, B: 3 } }, '7S');
+    const { state } = playLastTrick({ tricksWon: { A: 4, B: 3 } }, '7S');
 
     expect(state.tokens).toEqual({ A: 0, B: 0 });
     expect(state.carryOver).toBe(1);
@@ -142,20 +120,20 @@ describe('finishing a round', () => {
   });
 
   test('adds an existing carry-over to the winner’s tokens and clears it', () => {
-    const { state } = lastTrick({ tricksWon: { A: 4, B: 3 }, carryOver: 1 });
+    const { state } = playLastTrick({ tricksWon: { A: 4, B: 3 }, carryOver: 1 });
 
     expect(state.tokens).toEqual({ A: 2, B: 0 });
     expect(state.carryOver).toBe(0);
   });
 
   test('adds to the tokens already held', () => {
-    const { state } = lastTrick({ tricksWon: { A: 2, B: 5 }, tokens: { A: 3, B: 4 } });
+    const { state } = playLastTrick({ tricksWon: { A: 2, B: 5 }, tokens: { A: 3, B: 4 } });
 
     expect(state.tokens).toEqual({ A: 3, B: 6 });
   });
 
   test('rejects further plays once the round is scored', () => {
-    const { state } = lastTrick({ tricksWon: { A: 4, B: 3 } });
+    const { state } = playLastTrick({ tricksWon: { A: 4, B: 3 } });
 
     expect(errorCodeOf(state, { type: 'play-card', seat: 0, card: card('AH') })).toBe(
       'wrong-phase',

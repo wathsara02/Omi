@@ -13,4 +13,9 @@ export interface PlayCardAction {
   readonly card: Card;
 }
 
-export type Action = CallTrumpAction | PlayCardAction;
+/** Sent by the server, not by a player, once it is ready to deal again. */
+export interface NextRoundAction {
+  readonly type: 'next-round';
+}
+
+export type Action = CallTrumpAction | PlayCardAction | NextRoundAction;

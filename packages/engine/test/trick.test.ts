@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import type { Seat } from '../src/seats';
-import type { GameState, PlayedCard } from '../src/state';
+import type { PlayedCard } from '../src/state';
 import { trickWinner } from '../src/trick';
-import { card, cards, mustApply, playingState } from './helpers';
+import { card, cards, playSequence, playingState } from './helpers';
 
 const plays = (text: string): [PlayedCard, ...PlayedCard[]] => {
   const [first, ...rest] = cards(text).map((played, seat) => ({
@@ -12,15 +12,6 @@ const plays = (text: string): [PlayedCard, ...PlayedCard[]] => {
   if (!first) throw new Error('A trick needs at least one play');
   return [first, ...rest];
 };
-
-const playAll = (state: GameState, sequence: readonly (readonly [Seat, string])[]) =>
-  sequence.reduce(
-    (current, [seat, text]) => {
-      const applied = mustApply(current.state, { type: 'play-card', seat, card: card(text) });
-      return { state: applied.state, events: [...current.events, ...applied.events] };
-    },
-    { state, events: [] as readonly unknown[] },
-  );
 
 describe('trickWinner', () => {
   test.each<[string, string, Seat]>([
@@ -45,7 +36,7 @@ describe('completing a trick', () => {
   ] as const;
 
   test('gives the trick to the winner’s team and has the winner lead the next one', () => {
-    const { state } = playAll(playingState({ hands }), fourPlays);
+    const { state } = playSequence(playingState({ hands }), fourPlays);
 
     expect(state.tricksWon).toEqual({ A: 1, B: 0 });
     expect(state.turn).toBe(0);
@@ -53,7 +44,7 @@ describe('completing a trick', () => {
   });
 
   test('keeps the completed trick as the previous trick', () => {
-    const { state } = playAll(playingState({ hands }), fourPlays);
+    const { state } = playSequence(playingState({ hands }), fourPlays);
 
     expect(state.previousTrick).toEqual({
       leader: 0,
@@ -65,7 +56,7 @@ describe('completing a trick', () => {
   test('lets a player with none of the led suit win with a trump and lead next', () => {
     const trumpHands = [cards('AH 7C'), cards('7H KC'), cards('8H 8D'), cards('7S 9D')] as const;
 
-    const { state } = playAll(playingState({ hands: trumpHands }), [
+    const { state } = playSequence(playingState({ hands: trumpHands }), [
       [0, 'AH'],
       [1, '7H'],
       [2, '8H'],
@@ -77,7 +68,7 @@ describe('completing a trick', () => {
   });
 
   test('emits trick-won after the fourth card-played', () => {
-    const { events } = playAll(playingState({ hands }), fourPlays);
+    const { events } = playSequence(playingState({ hands }), fourPlays);
 
     expect(events.slice(-2)).toEqual([
       { type: 'card-played', seat: 3, card: card('9H') },
@@ -86,7 +77,7 @@ describe('completing a trick', () => {
   });
 
   test('counts tricks per team, not per player', () => {
-    const { state } = playAll(playingState({ hands }), [
+    const { state } = playSequence(playingState({ hands }), [
       ...fourPlays,
       [0, '7C'],
       [1, 'KC'],
@@ -100,7 +91,7 @@ describe('completing a trick', () => {
   test('replaces the previous trick each time, so only the last one is kept', () => {
     const partnerHands = [cards('KH 7C'), cards('7H 8C'), cards('AH AC'), cards('9H 9C')] as const;
 
-    const { state } = playAll(playingState({ hands: partnerHands }), [
+    const { state } = playSequence(playingState({ hands: partnerHands }), [
       [0, 'KH'],
       [1, '7H'],
       [2, 'AH'],

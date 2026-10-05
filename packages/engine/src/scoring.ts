@@ -1,5 +1,5 @@
 import type { RulesConfig } from './config';
-import type { Applied } from './events';
+import type { Applied, GameEvent } from './events';
 import { teamOf, type Team } from './seats';
 import type { GameState, RoundResult, TeamTally } from './state';
 
@@ -57,7 +57,7 @@ export const scoreRound = (input: RoundScoreInput): RoundScore => {
 export const isRoundComplete = (state: GameState): boolean =>
   state.tricksWon.A + state.tricksWon.B === TRICKS_PER_ROUND;
 
-/** Scores a round whose eighth trick has just been resolved. */
+/** Scores a round whose eighth trick has just been resolved, ending the match at the target. */
 export const finishRound = (state: GameState): Applied => {
   const { result, carryOver } = scoreRound({
     tricks: state.tricksWon,
@@ -72,16 +72,23 @@ export const finishRound = (state: GameState): Applied => {
           ...state.tokens,
           [result.winner]: state.tokens[result.winner] + result.tokensAwarded,
         };
+  const scored: GameState = {
+    ...state,
+    phase: 'round-scored',
+    tokens,
+    carryOver,
+    lastRound: result,
+    turn: null,
+    currentTrick: null,
+  };
+  const roundScored: GameEvent = { type: 'round-scored', result, tokens };
+
+  const { winner } = result;
+  if (winner === null || tokens[winner] < state.config.tokenTarget) {
+    return { state: scored, events: [roundScored] };
+  }
   return {
-    state: {
-      ...state,
-      phase: 'round-scored',
-      tokens,
-      carryOver,
-      lastRound: result,
-      turn: null,
-      currentTrick: null,
-    },
-    events: [{ type: 'round-scored', result, tokens }],
+    state: { ...scored, phase: 'match-over', winner },
+    events: [roundScored, { type: 'match-won', winner, tokens }],
   };
 };
