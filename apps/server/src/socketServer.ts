@@ -9,6 +9,7 @@ import {
   callTrumpSchema,
   createRoomSchema,
   joinRoomSchema,
+  kickSchema,
   playCardSchema,
   resumeSchema,
   type Ack,
@@ -169,6 +170,7 @@ export const createOmiServer = (options: OmiServerOptions): OmiServer => {
     }),
     'room:start': define({ schema: null, run: (id) => service.start(id) }),
     'room:leave': define({ schema: null, run: (id) => service.leave(id) }),
+    'room:kick': define({ schema: kickSchema, run: (id, payload) => service.kick(id, payload) }),
     'game:call-trump': define({
       schema: callTrumpSchema,
       run: (id, payload) => service.callTrump(id, payload),

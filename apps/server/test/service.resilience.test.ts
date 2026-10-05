@@ -108,7 +108,8 @@ describe('hold timers', () => {
     }
 
     expect(harness.room(watcher).status).toBe('finished');
-    expect(vi.getTimerCount()).toBe(0);
+    // Only the idle timer of the finished room is left.
+    expect(vi.getTimerCount()).toBe(1);
     expect(harness.room(watcher).players.some((player) => player.isBot)).toBe(false);
   });
 });
@@ -165,7 +166,8 @@ describe('returning at other moments', () => {
 
     expect(harness.room('new').status).toBe('finished');
     expect(harness.game('new').view.winner).not.toBeNull();
-    expect(vi.getTimerCount()).toBe(0);
+    // Only the idle timer of the finished room is left.
+    expect(vi.getTimerCount()).toBe(1);
   });
 });
 

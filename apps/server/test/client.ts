@@ -6,7 +6,13 @@ import { createOmiServer, type OmiServer, type OmiServerOptions } from '../src/s
 import { silentLogger } from './harness';
 
 /** Short real-time timings, so socket tests do not need fake timers. */
-export const FAST_TIMINGS = { turnMs: 5000, holdMs: 250, roundPauseMs: 30, botDelayMs: 20 };
+export const FAST_TIMINGS = {
+  turnMs: 5000,
+  holdMs: 250,
+  roundPauseMs: 30,
+  botDelayMs: 20,
+  idleRoomMs: 60_000,
+};
 
 const WAIT_LIMIT_MS = 5000;
 

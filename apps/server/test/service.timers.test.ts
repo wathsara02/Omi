@@ -97,7 +97,8 @@ describe('turn timer', () => {
     }
 
     expect(harness.room('s0').status).toBe('finished');
-    expect(vi.getTimerCount()).toBe(0);
+    // Only the idle timer of the finished room is left.
+    expect(vi.getTimerCount()).toBe(1);
   });
 });
 

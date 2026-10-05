@@ -38,6 +38,11 @@ export const joinRoomSchema = z.strictObject({ code: roomCodeSchema, name: playe
 
 export const resumeSchema = z.strictObject({ code: roomCodeSchema, token: sessionTokenSchema });
 
+/** A public player id, as shown in the room snapshot. */
+const playerIdSchema = z.string().regex(/^[A-Za-z0-9_-]{16}$/);
+
+export const kickSchema = z.strictObject({ playerId: playerIdSchema });
+
 export const callTrumpSchema = z.strictObject({ seq: sequenceSchema, suit: z.enum(SUITS) });
 
 export const playCardSchema = z.strictObject({ seq: sequenceSchema, card: cardSchema });
@@ -45,5 +50,6 @@ export const playCardSchema = z.strictObject({ seq: sequenceSchema, card: cardSc
 export type CreateRoomPayload = z.infer<typeof createRoomSchema>;
 export type JoinRoomPayload = z.infer<typeof joinRoomSchema>;
 export type ResumePayload = z.infer<typeof resumeSchema>;
+export type KickPayload = z.infer<typeof kickSchema>;
 export type CallTrumpPayload = z.infer<typeof callTrumpSchema>;
 export type PlayCardPayload = z.infer<typeof playCardSchema>;

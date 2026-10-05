@@ -6,6 +6,7 @@ export type {
   ErrorCode,
   GameSnapshot,
   ResumedSession,
+  RoomClosedReason,
   RoomPlayer,
   RoomSnapshot,
   RoomStatus,
@@ -20,6 +21,7 @@ export {
   callTrumpSchema,
   createRoomSchema,
   joinRoomSchema,
+  kickSchema,
   playCardSchema,
   playerNameSchema,
   resumeSchema,
@@ -29,6 +31,7 @@ export type {
   CallTrumpPayload,
   CreateRoomPayload,
   JoinRoomPayload,
+  KickPayload,
   PlayCardPayload,
   ResumePayload,
 } from './schemas';

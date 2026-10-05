@@ -9,6 +9,7 @@ export const TEST_TIMINGS: Timings = {
   holdMs: 60_000,
   roundPauseMs: 5_000,
   botDelayMs: 1_000,
+  idleRoomMs: 600_000,
 };
 
 export const SOCKETS = ['s0', 's1', 's2', 's3'] as const;

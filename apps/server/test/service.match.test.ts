@@ -222,6 +222,7 @@ describe('between rounds and at the end', () => {
 
     expect(harness.room('s0').status).toBe('finished');
     expect(harness.game('s0').view.winner).not.toBeNull();
-    expect(vi.getTimerCount()).toBe(0);
+    // Only the idle timer of the finished room is left.
+    expect(vi.getTimerCount()).toBe(1);
   });
 });

@@ -17,8 +17,10 @@ import type {
   CallTrumpPayload,
   CreateRoomPayload,
   JoinRoomPayload,
+  KickPayload,
   PlayCardPayload,
   ResumedSession,
+  RoomClosedReason,
   ResumePayload,
   ServerToClientEvents,
   Session,
@@ -59,15 +61,20 @@ export interface Timings {
   readonly roundPauseMs: number;
   /** How long a bot waits before acting. */
   readonly botDelayMs: number;
+  /** How long a lobby may sit unchanged, or a finished room stay open, before it is removed. */
+  readonly idleRoomMs: number;
 }
 
 const MS_PER_SECOND = 1000;
+const IDLE_ROOM_MINUTES = 10;
+const SECONDS_PER_MINUTE = 60;
 
 export const DEFAULT_TIMINGS: Timings = {
   turnMs: DEFAULT_RULES.turnTimerSeconds * MS_PER_SECOND,
   holdMs: DEFAULT_RULES.reconnectHoldSeconds * MS_PER_SECOND,
   roundPauseMs: 5 * MS_PER_SECOND,
   botDelayMs: 1 * MS_PER_SECOND,
+  idleRoomMs: IDLE_ROOM_MINUTES * SECONDS_PER_MINUTE * MS_PER_SECOND,
 };
 
 const DEFAULT_MAX_ROOMS = 1000;
@@ -101,6 +108,8 @@ interface Seated {
 interface RoomTimers {
   /** The one pending step: a turn timeout, a bot's move or the next deal. */
   step: NodeJS.Timeout | null;
+  /** Removes a lobby or finished room that has sat idle too long. */
+  idle: NodeJS.Timeout | null;
   /** Disconnect holds, by player id. */
   readonly holds: Map<string, NodeJS.Timeout>;
 }
@@ -140,6 +149,7 @@ export class GameService {
     const room = createRoom(this.unusedCode(), host);
     this.store.save(room);
     this.bindings.set(socketId, { code: room.code, playerId: host.id });
+    this.armIdle(room.code);
     this.logger.info({ room: logRef(room.code), player: host.id }, 'room created');
     this.sendRoom(room);
     return succeed({ code: room.code, playerId: host.id, token });
@@ -157,6 +167,7 @@ export class GameService {
 
     this.store.save(added.room);
     this.bindings.set(socketId, { code: added.room.code, playerId: player.id });
+    this.armIdle(added.room.code);
     this.logger.info({ room: logRef(added.room.code), player: player.id }, 'player joined');
     this.sendRoom(added.room);
     return succeed({ code: added.room.code, playerId: player.id, token });
@@ -207,6 +218,7 @@ export class GameService {
     const seatedRoom = assignSeats(seated.room, shuffled(SEATS));
     const room = this.schedule({ ...seatedRoom, status: 'playing', match: match.value, seq: 0 });
     this.store.save(room);
+    this.clearIdle(room.code);
     this.logger.info({ room: logRef(room.code) }, 'match started');
     this.sendRoom(room);
     this.sendGame(room, []);
@@ -227,6 +239,26 @@ export class GameService {
       seat,
       card: payload.card,
     }));
+  }
+
+  /** The host removes a player from the lobby. Not possible once the match has started. */
+  kick(socketId: string, payload: KickPayload): Ack {
+    const seated = this.seatedAt(socketId);
+    if (!seated) return fail('not-in-room');
+    const { room, player: host } = seated;
+    if (room.status !== 'lobby') return fail('match-in-progress');
+    if (host.id !== room.hostId) return fail('not-host');
+    if (payload.playerId === host.id) return fail('cannot-kick-self');
+    const target = findPlayer(room, payload.playerId);
+    const remaining = target && removePlayer(room, target.id);
+    if (!target || !remaining) return fail('player-not-found');
+
+    this.store.save(remaining);
+    this.armIdle(room.code);
+    this.logger.info({ room: logRef(room.code), player: target.id }, 'player kicked');
+    this.release(target, 'kicked');
+    this.sendRoom(remaining);
+    return OK;
   }
 
   leave(socketId: string): Ack {
@@ -254,6 +286,7 @@ export class GameService {
     this.store.save(remaining);
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player disconnected');
     if (remaining.status === 'playing') this.startHold(room.code, player.id);
+    if (remaining.status === 'lobby') this.armIdle(room.code);
     this.sendRoom(remaining);
   }
 
@@ -291,6 +324,7 @@ export class GameService {
     this.store.save(next);
     if (finished) {
       this.clearHolds(room.code);
+      this.armIdle(room.code);
       this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
       this.sendRoom(next);
     }
@@ -380,10 +414,36 @@ export class GameService {
     if (isBotsTurn) this.sendGame(room, []);
   }
 
+  /** Starts, or restarts, the countdown after which an idle room is removed. */
+  private armIdle(code: string): void {
+    this.clearIdle(code);
+    const timers = this.timersFor(code);
+    timers.idle = setTimeout(() => this.onIdleExpired(code), this.timings.idleRoomMs);
+  }
+
+  private clearIdle(code: string): void {
+    const timers = this.timers.get(code);
+    if (!timers || timers.idle === null) return;
+    clearTimeout(timers.idle);
+    timers.idle = null;
+  }
+
+  private onIdleExpired(code: string): void {
+    // Runs from a timer: an error here must not take the whole process down.
+    try {
+      const room = this.store.find(code);
+      if (!room || room.status === 'playing') return;
+      for (const player of room.players) this.release(player, 'expired');
+      this.removeRoom(code);
+    } catch (error: unknown) {
+      this.logger.error({ room: logRef(code), err: error }, 'room expiry failed');
+    }
+  }
+
   private timersFor(code: string): RoomTimers {
     const existing = this.timers.get(code);
     if (existing) return existing;
-    const created: RoomTimers = { step: null, holds: new Map() };
+    const created: RoomTimers = { step: null, idle: null, holds: new Map() };
     this.timers.set(code, created);
     return created;
   }
@@ -409,11 +469,19 @@ export class GameService {
 
   private clearTimers(code: string): void {
     this.clearStep(code);
+    this.clearIdle(code);
     this.clearHolds(code);
     this.timers.delete(code);
   }
 
   // --- rooms and players
+
+  /** Unbinds a player’s socket, if they have one, and tells it why. */
+  private release(player: Player, reason: RoomClosedReason): void {
+    if (player.socketId === null) return;
+    this.bindings.delete(player.socketId);
+    this.emit(player.socketId, 'room:closed', reason);
+  }
 
   private removeRoom(code: string): void {
     this.clearTimers(code);

@@ -3,6 +3,7 @@ import type {
   CallTrumpPayload,
   CreateRoomPayload,
   JoinRoomPayload,
+  KickPayload,
   PlayCardPayload,
   ResumePayload,
 } from './schemas';
@@ -19,6 +20,8 @@ export type ErrorCode =
   | 'not-in-room'
   | 'not-host'
   | 'not-enough-players'
+  | 'player-not-found'
+  | 'cannot-kick-self'
   | 'no-match'
   | 'stale-action'
   | 'session-invalid'
@@ -36,6 +39,9 @@ export type Ack<T = null> =
 export type AckCallback<T = null> = (response: Ack<T>) => void;
 
 export type RoomStatus = 'lobby' | 'playing' | 'finished';
+
+/** Removed by the host, or the room sat idle too long. */
+export type RoomClosedReason = 'kicked' | 'expired';
 
 export interface RoomPlayer {
   /** Public id; safe to show to everyone in the room. */
@@ -82,6 +88,8 @@ export interface ClientToServerEvents {
   'room:resume': (payload: ResumePayload, ack: AckCallback<ResumedSession>) => void;
   'room:start': (ack: AckCallback) => void;
   'room:leave': (ack: AckCallback) => void;
+  /** Host only, and only before the match starts. */
+  'room:kick': (payload: KickPayload, ack: AckCallback) => void;
   'game:call-trump': (payload: CallTrumpPayload, ack: AckCallback) => void;
   'game:play-card': (payload: PlayCardPayload, ack: AckCallback) => void;
 }
@@ -91,4 +99,6 @@ export interface ServerToClientEvents {
   'game:state': (snapshot: GameSnapshot) => void;
   /** This socket no longer holds its seat: the same player resumed from another one. */
   'session:replaced': (reason: 'resumed-elsewhere') => void;
+  /** This socket is no longer in its room. */
+  'room:closed': (reason: RoomClosedReason) => void;
 }

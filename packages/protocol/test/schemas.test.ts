@@ -4,6 +4,7 @@ import {
   callTrumpSchema,
   createRoomSchema,
   joinRoomSchema,
+  kickSchema,
   playCardSchema,
   playerNameSchema,
   resumeSchema,
@@ -92,6 +93,21 @@ describe('resumeSchema', () => {
     ['a non-string token', 12345],
   ])('rejects %s', (_label, token) => {
     expect(resumeSchema.safeParse({ code: 'ABC234', token }).success).toBe(false);
+  });
+});
+
+describe('kickSchema', () => {
+  test('accepts a 16-character player id', () => {
+    expect(kickSchema.safeParse({ playerId: 'Ab3_-'.padEnd(16, 'x') }).success).toBe(true);
+  });
+
+  test.each([
+    ['a short id', { playerId: 'abc' }],
+    ['an id with other characters', { playerId: `${'a'.repeat(15)}!` }],
+    ['a missing id', {}],
+    ['an extra key', { playerId: 'a'.repeat(16), ban: true }],
+  ])('rejects %s', (_label, payload) => {
+    expect(kickSchema.safeParse(payload).success).toBe(false);
   });
 });
 
