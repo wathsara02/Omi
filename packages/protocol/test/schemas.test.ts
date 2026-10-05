@@ -26,6 +26,9 @@ describe('playerNameSchema', () => {
     ['an empty name', ''],
     ['only spaces', '    '],
     ['21 characters', 'A'.repeat(21)],
+    ['a control character', 'Ni\u0007mal'],
+    ['a right-to-left override', 'Ni\u202Emal'],
+    ['a zero-width space', 'Ni\u200Bmal'],
     ['a number', 7],
     ['null', null],
   ])('rejects %s', (_label, value) => {

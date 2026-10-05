@@ -27,6 +27,7 @@ import type { Logger } from 'pino';
 import { OK, fail, failFromEngine, succeed } from './acks';
 import {
   hashToken,
+  logRef,
   newPlayerId,
   newRoomCode,
   newSeed,
@@ -139,7 +140,7 @@ export class GameService {
     const room = createRoom(this.unusedCode(), host);
     this.store.save(room);
     this.bindings.set(socketId, { code: room.code, playerId: host.id });
-    this.logger.info({ room: room.code, player: host.id }, 'room created');
+    this.logger.info({ room: logRef(room.code), player: host.id }, 'room created');
     this.sendRoom(room);
     return succeed({ code: room.code, playerId: host.id, token });
   }
@@ -156,7 +157,7 @@ export class GameService {
 
     this.store.save(added.room);
     this.bindings.set(socketId, { code: added.room.code, playerId: player.id });
-    this.logger.info({ room: added.room.code, player: player.id }, 'player joined');
+    this.logger.info({ room: logRef(added.room.code), player: player.id }, 'player joined');
     this.sendRoom(added.room);
     return succeed({ code: added.room.code, playerId: player.id, token });
   }
@@ -169,11 +170,15 @@ export class GameService {
     // One answer for a wrong token and an unknown room, so codes cannot be probed.
     if (!existing || !player) return fail('session-invalid');
 
-    if (player.socketId !== null) this.bindings.delete(player.socketId);
+    if (player.socketId !== null) {
+      // The seat moves to the new socket; tell the old one so its screen does not go stale.
+      this.bindings.delete(player.socketId);
+      this.emit(player.socketId, 'session:replaced', 'resumed-elsewhere');
+    }
     this.clearHold(existing.code, player.id);
     this.bindings.set(socketId, { code: existing.code, playerId: player.id });
     const room = updatePlayer(existing, player.id, { socketId, isBot: false });
-    this.logger.info({ room: room.code, player: player.id }, 'player resumed');
+    this.logger.info({ room: logRef(room.code), player: player.id }, 'player resumed');
 
     const wasBotOnTurn = player.isBot && room.match?.turn === player.seat;
     const current = wasBotOnTurn ? this.schedule(room) : room;
@@ -192,14 +197,17 @@ export class GameService {
 
     const match = createMatch(this.rules, newSeed());
     if (!match.ok) {
-      this.logger.error({ room: seated.room.code, code: match.error.code }, 'match not created');
+      this.logger.error(
+        { room: logRef(seated.room.code), code: match.error.code },
+        'match not created',
+      );
       return fail('internal');
     }
     // Team selection is random: seats are drawn, not taken in joining order.
     const seatedRoom = assignSeats(seated.room, shuffled(SEATS));
     const room = this.schedule({ ...seatedRoom, status: 'playing', match: match.value, seq: 0 });
     this.store.save(room);
-    this.logger.info({ room: room.code }, 'match started');
+    this.logger.info({ room: logRef(room.code) }, 'match started');
     this.sendRoom(room);
     this.sendGame(room, []);
     return OK;
@@ -244,7 +252,7 @@ export class GameService {
       return;
     }
     this.store.save(remaining);
-    this.logger.info({ room: room.code, player: player.id }, 'player disconnected');
+    this.logger.info({ room: logRef(room.code), player: player.id }, 'player disconnected');
     if (remaining.status === 'playing') this.startHold(room.code, player.id);
     this.sendRoom(remaining);
   }
@@ -282,7 +290,8 @@ export class GameService {
     });
     this.store.save(next);
     if (finished) {
-      this.logger.info({ room: room.code, winner: applied.state.winner }, 'match finished');
+      this.clearHolds(room.code);
+      this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
       this.sendRoom(next);
     }
     this.sendGame(next, applied.events);
@@ -323,11 +332,21 @@ export class GameService {
         step === 'next-round'
           ? applyAction(room.match, { type: 'next-round', seed: newSeed() })
           : applyAutoAction(room.match);
-      if (result.ok) this.commit(room, result.value);
-      else this.logger.error({ room: code, step, reason: result.error.code }, 'step rejected');
+      if (result.ok) {
+        this.commit(room, result.value);
+        return;
+      }
+      this.logger.error({ room: logRef(code), step, reason: result.error.code }, 'step rejected');
     } catch (error: unknown) {
-      this.logger.error({ room: code, step, err: error }, 'step failed');
+      this.logger.error({ room: logRef(code), step, err: error }, 'step failed');
     }
+    this.retryStep(code, expectedSeq);
+  }
+
+  /** A failed step must not leave a live match with no timer; arm it again. */
+  private retryStep(code: string, expectedSeq: number): void {
+    const room = this.store.find(code);
+    if (room && room.seq === expectedSeq) this.store.save(this.schedule(room));
   }
 
   private startHold(code: string, playerId: string): void {
@@ -338,6 +357,15 @@ export class GameService {
 
   private onHoldExpired(code: string, playerId: string): void {
     this.timers.get(code)?.holds.delete(playerId);
+    // Runs from a timer: an error here must not take the whole process down.
+    try {
+      this.handOverToBot(code, playerId);
+    } catch (error: unknown) {
+      this.logger.error({ room: logRef(code), err: error }, 'bot takeover failed');
+    }
+  }
+
+  private handOverToBot(code: string, playerId: string): void {
     const existing = this.store.find(code);
     const player = existing && findPlayer(existing, playerId);
     if (!existing || !player || player.socketId !== null) return;
@@ -347,7 +375,7 @@ export class GameService {
     // If the bot inherits a turn in progress it acts after the bot delay.
     const room = isBotsTurn ? this.schedule(asBot) : asBot;
     this.store.save(room);
-    this.logger.info({ room: code, player: playerId }, 'bot took over');
+    this.logger.info({ room: logRef(code), player: playerId }, 'bot took over');
     this.sendRoom(room);
     if (isBotsTurn) this.sendGame(room, []);
   }
@@ -373,9 +401,15 @@ export class GameService {
     holds?.delete(playerId);
   }
 
+  private clearHolds(code: string): void {
+    const holds = this.timers.get(code)?.holds;
+    for (const hold of holds?.values() ?? []) clearTimeout(hold);
+    holds?.clear();
+  }
+
   private clearTimers(code: string): void {
     this.clearStep(code);
-    for (const hold of this.timers.get(code)?.holds.values() ?? []) clearTimeout(hold);
+    this.clearHolds(code);
     this.timers.delete(code);
   }
 
@@ -384,7 +418,7 @@ export class GameService {
   private removeRoom(code: string): void {
     this.clearTimers(code);
     this.store.remove(code);
-    this.logger.info({ room: code }, 'room removed');
+    this.logger.info({ room: logRef(code) }, 'room removed');
   }
 
   private newPlayer(socketId: string, name: string, token: string): Player {

@@ -11,7 +11,15 @@ export const SESSION_TOKEN_LENGTH = 43;
 const ROOM_CODE_PATTERN = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
 const SESSION_TOKEN_PATTERN = new RegExp(`^[A-Za-z0-9_-]{${SESSION_TOKEN_LENGTH}}$`);
 
-export const playerNameSchema = z.string().trim().min(1).max(PLAYER_NAME_MAX_LENGTH);
+/** Control and invisible formatting characters, which could disguise one name as another. */
+const UNSAFE_NAME_CHARACTERS = /[\p{Cc}\p{Cf}]/u;
+
+export const playerNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(PLAYER_NAME_MAX_LENGTH)
+  .refine((name) => !UNSAFE_NAME_CHARACTERS.test(name));
 
 export const roomCodeSchema = z.string().trim().toUpperCase().regex(ROOM_CODE_PATTERN);
 

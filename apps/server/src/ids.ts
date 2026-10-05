@@ -27,6 +27,15 @@ export const hashToken = (token: string): Buffer => createHash('sha256').update(
 export const tokenMatches = (token: string, expectedHash: Buffer): boolean =>
   timingSafeEqual(hashToken(token), expectedHash);
 
+const LOG_REF_LENGTH = 8;
+
+/**
+ * A stable label for a room in logs. The code itself is what lets someone join,
+ * so it is never written to a log.
+ */
+export const logRef = (roomCode: string): string =>
+  createHash('sha256').update(roomCode).digest('hex').slice(0, LOG_REF_LENGTH);
+
 /** 128 fresh bits for the engine's shuffle; one per match and one per round. */
 export const newSeed = (): Seed =>
   Array.from(crypto.getRandomValues(new Uint32Array(SEED_WORDS))) as [

@@ -89,4 +89,6 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   'room:state': (snapshot: RoomSnapshot) => void;
   'game:state': (snapshot: GameSnapshot) => void;
+  /** This socket no longer holds its seat: the same player resumed from another one. */
+  'session:replaced': (reason: 'resumed-elsewhere') => void;
 }

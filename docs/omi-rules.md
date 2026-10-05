@@ -96,6 +96,7 @@ These are not part of traditional Omi; they cover situations a web game must han
 - **Starting:** a match starts only when all 4 seats are filled and the host
   starts it.
 - **Player names:** 1 to 20 characters after trimming; duplicates are allowed.
+  Control characters and invisible formatting characters are rejected.
 - **Team selection:** random.
 - **Turn timer:** 15 seconds per action (calling trump or playing a card).
 - **Timeout on trump call:** trump is the suit the caller holds most of in their
