@@ -96,3 +96,19 @@ export const playLastTrick = (overrides: Partial<GameState> = {}, lastCard = '9H
       [3, lastCard],
     ],
   );
+
+const childrenOf = (value: unknown): readonly unknown[] => {
+  if (Array.isArray(value)) return value;
+  return typeof value === 'object' && value !== null ? Object.values(value) : [];
+};
+
+/** Every card object found anywhere inside a value, however deeply nested. */
+export const collectCards = (value: unknown): Card[] =>
+  isCard(value) ? [value] : childrenOf(value).flatMap(collectCards);
+
+/** Every object key found anywhere inside a value, however deeply nested. */
+export const collectKeys = (value: unknown): string[] => {
+  const ownKeys =
+    typeof value === 'object' && value !== null && !Array.isArray(value) ? Object.keys(value) : [];
+  return [...ownKeys, ...childrenOf(value).flatMap(collectKeys)];
+};
