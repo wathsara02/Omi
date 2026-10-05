@@ -1,4 +1,4 @@
-import type { Suit } from './cards';
+import type { Card, Suit } from './cards';
 import type { Seat } from './seats';
 
 export interface CallTrumpAction {
@@ -7,4 +7,10 @@ export interface CallTrumpAction {
   readonly suit: Suit;
 }
 
-export type Action = CallTrumpAction;
+export interface PlayCardAction {
+  readonly type: 'play-card';
+  readonly seat: Seat;
+  readonly card: Card;
+}
+
+export type Action = CallTrumpAction | PlayCardAction;

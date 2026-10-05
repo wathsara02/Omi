@@ -1,6 +1,7 @@
 import type { Action } from './actions';
 import type { ApplyResult } from './events';
 import { callTrump } from './handlers/callTrump';
+import { playCard } from './handlers/playCard';
 import { engineError } from './result';
 import type { GameState } from './state';
 
@@ -12,6 +13,8 @@ export const applyAction = (state: GameState, action: Action): ApplyResult => {
   switch (action.type) {
     case 'call-trump':
       return callTrump(state, action);
+    case 'play-card':
+      return playCard(state, action);
     default:
       return engineError('invalid-action', 'Unknown action type');
   }
