@@ -1,16 +1,17 @@
 import type { PlayCardAction } from '../actions';
 import { cardEquals, isCard, type Card } from '../cards';
-import type { ApplyResult } from '../events';
+import type { ApplyResult, GameEvent } from '../events';
 import { ledSuitOf, legalCards } from '../legalMoves';
 import { engineError, ok } from '../result';
 import { mapSeats, nextSeat } from '../seats';
 import type { GameState, Hand } from '../state';
+import { TRICK_SIZE, resolveTrick } from '../trick';
 
 const holds = (hand: Hand, card: Card): boolean => hand.some((held) => cardEquals(held, card));
 
 export const playCard = (state: GameState, action: PlayCardAction): ApplyResult => {
-  const trick = state.currentTrick;
-  if (state.phase !== 'playing' || trick === null || state.turn === null) {
+  const { currentTrick: trick, trump } = state;
+  if (state.phase !== 'playing' || trick === null || trump === null || state.turn === null) {
     return engineError('wrong-phase', 'Cards can only be played once trump is called');
   }
   if (action.seat !== state.turn) {
@@ -29,15 +30,20 @@ export const playCard = (state: GameState, action: PlayCardAction): ApplyResult 
   }
 
   const played = { seat, card };
-  return ok({
-    state: {
-      ...state,
-      hands: mapSeats((each) =>
-        each === seat ? hand.filter((held) => !cardEquals(held, card)) : state.hands[each],
-      ),
-      currentTrick: { ...trick, plays: [...trick.plays, played] },
-      turn: nextSeat(seat, state.config.turnOrder),
-    },
-    events: [{ type: 'card-played', ...played }],
-  });
+  const [lead = played, ...followers] = [...trick.plays, played];
+  const afterPlay: GameState = {
+    ...state,
+    hands: mapSeats((each) =>
+      each === seat ? hand.filter((held) => !cardEquals(held, card)) : state.hands[each],
+    ),
+    currentTrick: { leader: trick.leader, plays: [lead, ...followers] },
+  };
+  const cardPlayed: GameEvent = { type: 'card-played', ...played };
+
+  if (followers.length + 1 < TRICK_SIZE) {
+    const turn = nextSeat(seat, state.config.turnOrder);
+    return ok({ state: { ...afterPlay, turn }, events: [cardPlayed] });
+  }
+  const resolved = resolveTrick(afterPlay, trick.leader, [lead, ...followers], trump);
+  return ok({ state: resolved.state, events: [cardPlayed, ...resolved.events] });
 };

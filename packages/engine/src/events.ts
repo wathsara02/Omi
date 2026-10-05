@@ -1,6 +1,6 @@
 import type { Card, Suit } from './cards';
 import type { EngineError, Result } from './result';
-import type { Seat } from './seats';
+import type { Seat, Team } from './seats';
 import type { GameState } from './state';
 
 /**
@@ -9,7 +9,8 @@ import type { GameState } from './state';
  */
 export type GameEvent =
   | { readonly type: 'trump-called'; readonly seat: Seat; readonly suit: Suit }
-  | { readonly type: 'card-played'; readonly seat: Seat; readonly card: Card };
+  | { readonly type: 'card-played'; readonly seat: Seat; readonly card: Card }
+  | { readonly type: 'trick-won'; readonly winner: Seat; readonly team: Team };
 
 export interface Applied {
   readonly state: GameState;
