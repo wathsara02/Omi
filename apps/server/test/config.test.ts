@@ -7,6 +7,7 @@ describe('loadConfig', () => {
       port: 3001,
       corsOrigins: ['http://localhost:5173'],
       logLevel: 'info',
+      trustProxy: false,
     });
   });
 
@@ -15,12 +16,14 @@ describe('loadConfig', () => {
       PORT: '8080',
       CORS_ORIGINS: 'https://omi.example.com, https://staging.example.com',
       LOG_LEVEL: 'warn',
+      TRUST_PROXY: 'true',
     });
 
     expect(config).toEqual({
       port: 8080,
       corsOrigins: ['https://omi.example.com', 'https://staging.example.com'],
       logLevel: 'warn',
+      trustProxy: true,
     });
   });
 
@@ -32,6 +35,7 @@ describe('loadConfig', () => {
     ['an origin that is not a URL', { CORS_ORIGINS: 'omi.example.com' }],
     ['an empty origin list', { CORS_ORIGINS: ' , ' }],
     ['an unknown log level', { LOG_LEVEL: 'chatty' }],
+    ['a trust-proxy value that is not true or false', { TRUST_PROXY: 'yes' }],
   ])('fails fast on %s', (_label, env) => {
     expect(() => loadConfig(env)).toThrow(/Invalid server configuration/);
   });

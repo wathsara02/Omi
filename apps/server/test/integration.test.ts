@@ -196,6 +196,7 @@ describe('untrusted input over real sockets', () => {
       limits: {
         perSocket: { capacity: 5, refillPerSecond: 0 },
         perAddress: { capacity: 100, refillPerSecond: 0 },
+        resume: { capacity: 1000, refillPerSecond: 0 },
       },
     });
     const client = await server.connect();
@@ -210,6 +211,7 @@ describe('untrusted input over real sockets', () => {
       limits: {
         perSocket: { capacity: 100, refillPerSecond: 0 },
         perAddress: { capacity: 3, refillPerSecond: 0 },
+        resume: { capacity: 1000, refillPerSecond: 0 },
       },
     });
     const [first, second] = await Promise.all([server.connect(), server.connect()]);
@@ -295,6 +297,7 @@ describe('presence over real sockets', () => {
       limits: {
         perSocket: { capacity: 1000, refillPerSecond: 0 },
         perAddress: { capacity: 1000, refillPerSecond: 0 },
+        resume: { capacity: 1000, refillPerSecond: 0 },
       },
     });
     const { clients, code } = await openTable(server);

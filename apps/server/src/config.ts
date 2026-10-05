@@ -15,19 +15,24 @@ const splitOrigins = (value: string): string[] =>
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(MAX_PORT).default(DEFAULT_PORT),
-  // Explicit origins only: a wildcard would let any site open a socket as the player.
+  // Explicit origins only. The server also checks the Origin header on every
+  // connection itself, because browsers do not apply CORS to WebSocket upgrades.
   CORS_ORIGINS: z
     .string()
     .default(DEFAULT_CORS_ORIGIN)
     .transform(splitOrigins)
     .pipe(z.array(z.url()).min(1)),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
+  // Set to true only when the server sits behind a reverse proxy you control.
+  TRUST_PROXY: z.enum(['true', 'false']).default('false'),
 });
 
 export interface ServerConfig {
   readonly port: number;
   readonly corsOrigins: readonly string[];
   readonly logLevel: (typeof LOG_LEVELS)[number];
+  /** Take client addresses from X-Forwarded-For instead of the socket. */
+  readonly trustProxy: boolean;
 }
 
 /** Reads and validates the environment; throws at startup if it is wrong. */
@@ -40,5 +45,6 @@ export const loadConfig = (env: Readonly<Record<string, string | undefined>>): S
     port: parsed.data.PORT,
     corsOrigins: parsed.data.CORS_ORIGINS,
     logLevel: parsed.data.LOG_LEVEL,
+    trustProxy: parsed.data.TRUST_PROXY === 'true',
   };
 };

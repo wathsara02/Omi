@@ -28,10 +28,24 @@ export interface Client {
   close(): void;
 }
 
+export interface ConnectOptions {
+  /** The Origin header to send; null sends none. Defaults to the allowed origin. */
+  readonly origin?: string | null;
+  /** An X-Forwarded-For header, as a reverse proxy would add. */
+  readonly forwardedFor?: string;
+}
+
+/** Generous, so only the tests about rate limiting ever meet a limit. */
+const TEST_LIMITS = {
+  perSocket: { capacity: 10_000, refillPerSecond: 0 },
+  perAddress: { capacity: 10_000, refillPerSecond: 0 },
+  resume: { capacity: 10_000, refillPerSecond: 0 },
+};
+
 export interface Running {
   readonly server: OmiServer;
   readonly url: string;
-  connect(): Promise<Client>;
+  connect(options?: ConnectOptions): Promise<Client>;
   stop(): Promise<void>;
 }
 
@@ -43,6 +57,7 @@ export const startServer = async (
     logger: silentLogger,
     timings: FAST_TIMINGS,
     rules: DEFAULT_RULES,
+    limits: TEST_LIMITS,
     ...overrides,
   });
   await new Promise<void>((resolve) => server.httpServer.listen(0, '127.0.0.1', resolve));
@@ -50,8 +65,8 @@ export const startServer = async (
   const url = `http://127.0.0.1:${port}`;
   const clients: Client[] = [];
 
-  const connect = async (): Promise<Client> => {
-    const client = await openClient(url);
+  const connect = async (options: ConnectOptions = {}): Promise<Client> => {
+    const client = await openClient(url, options);
     clients.push(client);
     return client;
   };
@@ -62,8 +77,17 @@ export const startServer = async (
   return { server, url, connect, stop };
 };
 
-const openClient = async (url: string): Promise<Client> => {
-  const socket = io(url, { transports: ['websocket'], reconnection: false, forceNew: true });
+const openClient = async (url: string, options: ConnectOptions): Promise<Client> => {
+  const origin = options.origin === undefined ? ALLOWED_ORIGIN : options.origin;
+  const socket = io(url, {
+    transports: ['websocket'],
+    reconnection: false,
+    forceNew: true,
+    extraHeaders: {
+      ...(origin !== null && { Origin: origin }),
+      ...(options.forwardedFor !== undefined && { 'X-Forwarded-For': options.forwardedFor }),
+    },
+  });
   const frames: Frame[] = [];
   const waiters = new Set<() => void>();
   socket.onAny((event: string, payload: unknown) => {
@@ -72,7 +96,10 @@ const openClient = async (url: string): Promise<Client> => {
   });
   await new Promise<void>((resolve, reject) => {
     socket.once('connect', () => resolve());
-    socket.once('connect_error', reject);
+    socket.once('connect_error', (error) => {
+      socket.close();
+      reject(error);
+    });
   });
 
   const last = <T>(event: string): T => {
