@@ -1,10 +1,13 @@
 import { defineConfig } from 'vitest/config';
 
 const COVERAGE_THRESHOLD = 95;
+// Property tests play dozens of whole matches each.
+const TEST_TIMEOUT_MS = 30_000;
 
 export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
+    testTimeout: TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

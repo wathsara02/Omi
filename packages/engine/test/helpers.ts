@@ -112,3 +112,9 @@ export const collectKeys = (value: unknown): string[] => {
     typeof value === 'object' && value !== null && !Array.isArray(value) ? Object.keys(value) : [];
   return [...ownKeys, ...childrenOf(value).flatMap(collectKeys)];
 };
+
+/** Freezes a value and everything inside it, so any attempt to mutate it throws. */
+export const deepFreeze = <T>(value: T): T => {
+  childrenOf(value).forEach(deepFreeze);
+  return Object.freeze(value);
+};
