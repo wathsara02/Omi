@@ -91,7 +91,11 @@ The engine must follow this file, not general knowledge of the game.
 
 These are not part of traditional Omi; they cover situations a web game must handle. **[EDIT]** all values.
 
-- **Starting:** a match starts only when all 4 seats are filled and all players are ready.
+- **Host:** the player who creates the room is the host. If the host leaves
+  before the match starts, the player who has waited longest becomes host.
+- **Starting:** a match starts only when all 4 seats are filled and the host
+  starts it.
+- **Player names:** 1 to 20 characters after trimming; duplicates are allowed.
 - **Team selection:** random.
 - **Turn timer:** 15 seconds per action (calling trump or playing a card).
 - **Timeout on trump call:** trump is the suit the caller holds most of in their
@@ -102,7 +106,13 @@ These are not part of traditional Omi; they cover situations a web game must han
 - **Disconnect:** the seat is held for 60 seconds. The player can rejoin the
   same seat. While they are away, timeouts apply as above.
 - **Abandon:** if a player does not return within the hold time, a bot takes
-  over the seat and the match continues.
+  over the seat and the match continues. The bot plays as a timeout does
+  (most-held suit as trump, lowest legal card), 1 second after its turn begins.
+  The player can take the seat back at any time; the bot stops at its next action.
+- **Between rounds:** the next round is dealt 5 seconds after a round is scored.
+- **Room expiry:** a room is removed the moment no human player is connected to
+  it. This overrides the disconnect hold: if all four players drop at once, the
+  match is gone.
 - **Table talk:** no signalling of cards between partners. In-game chat, if any,
   is visible to all four players.
 - **Hidden information:** a player sees only their own hand, the cards played to
