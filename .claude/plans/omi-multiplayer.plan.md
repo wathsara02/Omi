@@ -62,15 +62,16 @@ The repo contains only `docs/omi-rules.md`, so there are no existing code patter
    - A matching token rebinds the new socket to the old seat and sends a fresh view.
    - Seats are never identified by socket ID.
 4. **Per-seat emission:** each socket gets its own `viewFor` output; game state is never broadcast to the room. A test asserts this on the raw payloads.
-5. **Timers:** a 15-second turn timer is owned by the server and sent to clients as a deadline timestamp. On expiry the server applies the engine's auto-action.
-6. **Disconnect and bot:** a 60-second hold begins on disconnect, with turn timeouts still applying. When it expires the seat is flagged as bot-controlled and plays via the auto-actions after a short delay.
-7. **Hardening:**
+5. **Seeds:** the engine needs a 128-bit seed for `createMatch` and a fresh one on every `next-round`. The server must draw each from `crypto.getRandomValues(new Uint32Array(4))`; `seedFromInteger` is for tests and fixed-seed e2e runs only. Seeds are never logged or sent to clients.
+6. **Timers:** a 15-second turn timer is owned by the server and sent to clients as a deadline timestamp. On expiry the server applies the engine's auto-action.
+7. **Disconnect and bot:** a 60-second hold begins on disconnect, with turn timeouts still applying. When it expires the seat is flagged as bot-controlled and plays via the auto-actions after a short delay.
+8. **Hardening:**
    - zod validation on every inbound event;
    - turn and seat checks server-side;
    - per-socket rate limiting;
    - a CORS allowlist;
    - structured logs that never contain hands.
-8. **Tests:** integration tests use real `socket.io-client` instances with fake timers. They cover the full match, illegal-move rejection, reconnect inside the hold, bot takeover after it, and hand leakage.
+9. **Tests:** integration tests use real `socket.io-client` instances with fake timers. They cover the full match, illegal-move rejection, reconnect inside the hold, bot takeover after it, and hand leakage.
 
 ### Phase 3: UI design in Claude Design (small to medium; blocks Phase 4)
 
