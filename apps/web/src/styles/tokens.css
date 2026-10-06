@@ -1,0 +1,49 @@
+/* Design tokens from the approved design (docs/design). */
+:root {
+  --color-table: #0e4a41;
+  --color-table-deep: #0a3832;
+  --color-table-shadow: #06302a;
+  --color-on-table: #ffffff;
+  --color-on-table-muted: #c4e3dc;
+
+  --color-accent: #ffb199;
+  --color-accent-soft: #ffd9cc;
+
+  --color-sheet: #ffffff;
+  --color-ink: #10201d;
+  --color-muted: #51635f;
+  --color-surface: #eef3f2;
+  --color-line: #dce6e3;
+  --color-line-strong: #c9d6d3;
+  --color-track: #e4ecea;
+
+  --color-suit-red: #d63a25;
+  --color-danger: #b32c1a;
+  --color-danger-surface: #fdede9;
+
+  --font-ui: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif;
+  --font-card: 'Gemunu Libre', 'Arial Narrow', sans-serif;
+
+  --radius-sheet: 30px;
+  --radius-control: 16px;
+  --radius-row: 16px;
+  --radius-card: 10px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+
+  --control-height: 56px;
+  --touch-target: 44px;
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --shadow-dialog: 0 24px 40px -20px rgb(0 0 0 / 60%);
+}
