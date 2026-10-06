@@ -1,0 +1,87 @@
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgb(6 48 42 / 78%);
+  animation: notice-in var(--duration-normal) var(--ease-out);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-7) var(--space-6);
+  border-radius: 28px;
+  background: var(--color-sheet);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-dialog);
+}
+
+.dialog__title {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dialog__body {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.dialog__spinner {
+  order: -1;
+  width: 56px;
+  height: 56px;
+  border: 6px solid var(--color-track);
+  border-top-color: var(--color-table);
+  border-radius: 50%;
+  animation: notice-spin 900ms linear infinite;
+}
+
+.dialog__hold {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dialog__hold-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dialog__hold-clock {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-danger);
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes notice-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A spinner that cannot spin still says "waiting"; keep it visible but still. */
+@media (prefers-reduced-motion: reduce) {
+  .dialog__spinner {
+    animation: none;
+  }
+}
