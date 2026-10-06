@@ -1,0 +1,354 @@
+.table {
+  min-height: 100%;
+}
+
+.table__felt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.table__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 18px 18px 10px;
+}
+
+.table__trump {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-table-deep);
+  color: var(--color-on-table-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.table__trump--called {
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-weight: 800;
+}
+
+/* --- the trick: partner on top, opponents at the sides, the player's card at the bottom */
+
+.trick {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto repeat(3, minmax(96px, 1fr));
+  grid-template-areas:
+    '. seat-top .'
+    '. card-top .'
+    'left count right'
+    '. card-bottom .';
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) 14px 18px;
+}
+
+.trick__seat--top {
+  grid-area: seat-top;
+}
+
+.trick__card--top {
+  grid-area: card-top;
+}
+
+.trick__side--left {
+  grid-area: left;
+}
+
+.trick__side--right {
+  grid-area: right;
+}
+
+.trick__card--bottom {
+  grid-area: card-bottom;
+}
+
+.trick__count {
+  grid-area: count;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.trick__count .eyebrow {
+  font-size: 11px;
+}
+
+.trick__count-value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.trick__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trick__slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 86px;
+  border: 2px dashed var(--color-accent);
+  border-radius: var(--radius-card);
+  color: var(--color-accent-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.trick__slot--large {
+  width: 76px;
+  height: 108px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.trick .card {
+  animation: card-arrive var(--duration-normal) var(--ease-out);
+}
+
+@keyframes card-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(var(--card-tilt, 0deg)) scale(0.92);
+  }
+}
+
+/* --- a seat */
+
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.seat--row {
+  flex-direction: row;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.seat__text {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seat--row .seat__text {
+  align-items: flex-start;
+}
+
+.seat__name {
+  max-width: 96px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat__detail {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-on-table-muted);
+}
+
+.seat--on-turn .avatar {
+  box-shadow: 0 0 0 3px var(--color-accent);
+}
+
+/* --- the sheet: status, trump choice, hand */
+
+.table__sheet {
+  gap: 18px;
+  padding: 18px var(--space-4) var(--space-5);
+}
+
+.table__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.table__status-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.table__status .countdown {
+  flex: none;
+  width: 140px;
+}
+
+.table__title {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.table__hint {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.table__suits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.table__suit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 60px;
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-control);
+  background: var(--color-sheet);
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 800;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.table__suit:hover {
+  transform: translateY(-2px);
+}
+
+.table__suit--hearts .suit-icon,
+.table__suit--diamonds .suit-icon {
+  color: var(--color-suit-red);
+}
+
+.table__hand {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  /* Room for playable cards to lift without being clipped. */
+  padding-top: 14px;
+}
+
+.table__hand--crowded {
+  gap: 0;
+}
+
+.table__hand--crowded li + li {
+  margin-left: -12px;
+}
+
+.table__footnote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.table__leave {
+  align-self: center;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* Desktop: the table fills the left, the sheet becomes a side panel (docs/design/TableDesktop). */
+@media (min-width: 900px) {
+  .table {
+    flex-direction: row;
+  }
+
+  .table__felt {
+    flex: 999 1 560px;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .table__header {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+  }
+
+  .trick {
+    grid-template-rows: auto repeat(3, minmax(124px, 1fr));
+    gap: var(--space-2);
+  }
+
+  .trick__side--left,
+  .trick__side--right {
+    flex-direction: row;
+    gap: var(--space-5);
+  }
+
+  .trick__side--left {
+    flex-direction: row-reverse;
+  }
+
+  .trick__count-value {
+    font-size: 36px;
+  }
+
+  .seat__name {
+    max-width: 160px;
+    font-size: 16px;
+  }
+
+  .seat__detail {
+    font-size: 13px;
+  }
+
+  .table__sheet {
+    flex: 1 1 360px;
+    max-width: 440px;
+    justify-content: center;
+    gap: var(--space-6);
+    padding: var(--space-7);
+    border-radius: var(--radius-sheet) 0 0 var(--radius-sheet);
+  }
+
+  .table__status {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table__status .countdown {
+    width: auto;
+  }
+
+  .table__title {
+    font-size: 30px;
+  }
+
+  .table__hint {
+    font-size: 15px;
+  }
+
+  .table__hand {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    row-gap: var(--space-5);
+  }
+
+  .table__hand--crowded li + li {
+    margin-left: 0;
+  }
+}
