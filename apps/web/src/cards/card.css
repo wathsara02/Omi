@@ -1,0 +1,89 @@
+.card {
+  --card-width: 60px;
+  --card-height: 86px;
+  --card-shadow: var(--color-table-shadow);
+  --card-lift: 0px;
+
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: var(--card-width);
+  height: var(--card-height);
+  padding: 7px;
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-sheet);
+  box-shadow: 3px 3px 0 var(--card-shadow);
+  transform: translateY(var(--card-lift)) rotate(var(--card-tilt, 0deg));
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.card--red {
+  color: var(--color-suit-red);
+}
+
+.card--black {
+  color: var(--color-ink);
+}
+
+.card__rank {
+  font-family: var(--font-card);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 0.9;
+}
+
+.card .suit-icon {
+  align-self: flex-end;
+}
+
+.card--hand {
+  --card-width: 54px;
+  --card-height: 88px;
+  --card-shadow: var(--color-ink);
+
+  padding: 6px;
+}
+
+.card--large {
+  --card-width: 76px;
+  --card-height: 108px;
+
+  padding: 9px;
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--card-shadow);
+}
+
+.card--large .card__rank {
+  font-size: 36px;
+}
+
+.card--playable {
+  --card-lift: -12px;
+}
+
+.card--playable:hover,
+.card--playable:focus-visible {
+  --card-lift: -18px;
+}
+
+.card--playable:active {
+  --card-lift: -8px;
+}
+
+.card--dimmed {
+  border-color: #7e918d;
+  background: var(--color-surface);
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.card--winner {
+  box-shadow:
+    0 0 0 4px var(--color-accent),
+    3px 3px 0 4px var(--card-shadow);
+}
