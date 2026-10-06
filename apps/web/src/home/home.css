@@ -1,0 +1,79 @@
+.home__hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: 44px var(--space-6) var(--space-7);
+}
+
+.home__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home__title {
+  font-size: clamp(3.5rem, 2rem + 8vw, 4.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.home__tagline {
+  max-width: 260px;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--color-on-table-muted);
+}
+
+.home__cards {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: var(--space-2);
+}
+
+.home__cards .card + .card {
+  margin-left: -18px;
+}
+
+.home__cards .card:nth-child(2) {
+  --card-lift: -14px;
+
+  z-index: 1;
+}
+
+.home__form {
+  gap: 18px;
+  padding: 26px var(--space-6) 30px;
+}
+
+.home__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.home__divider::before,
+.home__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-line);
+}
+
+.home__join {
+  display: flex;
+  gap: 10px;
+}
+
+.home__join-button {
+  flex: none;
+  width: 96px;
+  min-height: 52px;
+  border-radius: 14px;
+}
