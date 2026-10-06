@@ -51,6 +51,7 @@ import {
 } from './room/lobby';
 import type { Player, Room } from './room/types';
 import type { RoomStore } from './roomStore';
+import { RoomTimers } from './roomTimers';
 
 export interface Timings {
   /** How long a seat has to act before it is played for. */
@@ -105,15 +106,6 @@ interface Seated {
   readonly player: Player;
 }
 
-interface RoomTimers {
-  /** The one pending step: a turn timeout, a bot's move or the next deal. */
-  step: NodeJS.Timeout | null;
-  /** Removes a lobby or finished room that has sat idle too long. */
-  idle: NodeJS.Timeout | null;
-  /** Disconnect holds, by player id. */
-  readonly holds: Map<string, NodeJS.Timeout>;
-}
-
 type Step = 'auto-action' | 'next-round';
 
 /**
@@ -129,7 +121,7 @@ export class GameService {
   private readonly maxRooms: number;
   private readonly rules: RulesConfig;
   private readonly bindings = new Map<string, Binding>();
-  private readonly timers = new Map<string, RoomTimers>();
+  private readonly timers = new RoomTimers();
 
   constructor(options: GameServiceOptions) {
     this.store = options.store;
@@ -186,7 +178,7 @@ export class GameService {
       this.bindings.delete(player.socketId);
       this.emit(player.socketId, 'session:replaced', 'resumed-elsewhere');
     }
-    this.clearHold(existing.code, player.id);
+    this.timers.clearHold(existing.code, player.id);
     this.bindings.set(socketId, { code: existing.code, playerId: player.id });
     const room = updatePlayer(existing, player.id, { socketId, isBot: false });
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player resumed');
@@ -218,7 +210,7 @@ export class GameService {
     const seatedRoom = assignSeats(seated.room, shuffled(SEATS));
     const room = this.schedule({ ...seatedRoom, status: 'playing', match: match.value, seq: 0 });
     this.store.save(room);
-    this.clearIdle(room.code);
+    this.timers.clearIdle(room.code);
     this.logger.info({ room: logRef(room.code) }, 'match started');
     this.sendRoom(room);
     this.sendGame(room, []);
@@ -292,7 +284,7 @@ export class GameService {
 
   /** Cancels every timer. Call before shutting the process down. */
   close(): void {
-    for (const code of [...this.timers.keys()]) this.clearTimers(code);
+    this.timers.clearAll();
   }
 
   // --- actions
@@ -323,7 +315,7 @@ export class GameService {
     });
     this.store.save(next);
     if (finished) {
-      this.clearHolds(room.code);
+      this.timers.clearHolds(room.code);
       this.armIdle(room.code);
       this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
       this.sendRoom(next);
@@ -335,7 +327,7 @@ export class GameService {
 
   /** Arms the one timer the room's current state calls for and sets the deadline. */
   private schedule(room: Room): Room {
-    this.clearStep(room.code);
+    this.timers.clearStep(room.code);
     const { match } = room;
     if (match === null || match.phase === 'match-over') return { ...room, deadline: null };
 
@@ -354,7 +346,7 @@ export class GameService {
 
   private armStep(room: Room, step: Step, delayMs: number): void {
     const { code, seq } = room;
-    this.timersFor(code).step = setTimeout(() => this.runStep(code, seq, step), delayMs);
+    this.timers.setStep(code, delayMs, () => this.runStep(code, seq, step));
   }
 
   private runStep(code: string, expectedSeq: number, step: Step): void {
@@ -384,13 +376,12 @@ export class GameService {
   }
 
   private startHold(code: string, playerId: string): void {
-    this.clearHold(code, playerId);
-    const hold = setTimeout(() => this.onHoldExpired(code, playerId), this.timings.holdMs);
-    this.timersFor(code).holds.set(playerId, hold);
+    this.timers.setHold(code, playerId, this.timings.holdMs, () =>
+      this.onHoldExpired(code, playerId),
+    );
   }
 
   private onHoldExpired(code: string, playerId: string): void {
-    this.timers.get(code)?.holds.delete(playerId);
     // Runs from a timer: an error here must not take the whole process down.
     try {
       this.handOverToBot(code, playerId);
@@ -416,16 +407,7 @@ export class GameService {
 
   /** Starts, or restarts, the countdown after which an idle room is removed. */
   private armIdle(code: string): void {
-    this.clearIdle(code);
-    const timers = this.timersFor(code);
-    timers.idle = setTimeout(() => this.onIdleExpired(code), this.timings.idleRoomMs);
-  }
-
-  private clearIdle(code: string): void {
-    const timers = this.timers.get(code);
-    if (!timers || timers.idle === null) return;
-    clearTimeout(timers.idle);
-    timers.idle = null;
+    this.timers.setIdle(code, this.timings.idleRoomMs, () => this.onIdleExpired(code));
   }
 
   private onIdleExpired(code: string): void {
@@ -440,40 +422,6 @@ export class GameService {
     }
   }
 
-  private timersFor(code: string): RoomTimers {
-    const existing = this.timers.get(code);
-    if (existing) return existing;
-    const created: RoomTimers = { step: null, idle: null, holds: new Map() };
-    this.timers.set(code, created);
-    return created;
-  }
-
-  private clearStep(code: string): void {
-    const timers = this.timers.get(code);
-    if (!timers || timers.step === null) return;
-    clearTimeout(timers.step);
-    timers.step = null;
-  }
-
-  private clearHold(code: string, playerId: string): void {
-    const holds = this.timers.get(code)?.holds;
-    clearTimeout(holds?.get(playerId));
-    holds?.delete(playerId);
-  }
-
-  private clearHolds(code: string): void {
-    const holds = this.timers.get(code)?.holds;
-    for (const hold of holds?.values() ?? []) clearTimeout(hold);
-    holds?.clear();
-  }
-
-  private clearTimers(code: string): void {
-    this.clearStep(code);
-    this.clearIdle(code);
-    this.clearHolds(code);
-    this.timers.delete(code);
-  }
-
   // --- rooms and players
 
   /** Unbinds a player’s socket, if they have one, and tells it why. */
@@ -484,7 +432,7 @@ export class GameService {
   }
 
   private removeRoom(code: string): void {
-    this.clearTimers(code);
+    this.timers.clearRoom(code);
     this.store.remove(code);
     this.logger.info({ room: logRef(code) }, 'room removed');
   }
