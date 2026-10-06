@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omi notices</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+body{margin:0}
+a{color:#0C5A4F}a:hover{color:#083C35}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 230px 20px 0; background: #0E4A41; color: #FFFFFF; font-family: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif">
+
+  <sc-if value="{{ isReconnecting }}" hint-placeholder-val="{{ true }}">
+    <div role="status" style="display: flex; flex-direction: column; gap: 18px; padding: 28px 24px; border-radius: 28px; background: #FFFFFF; color: #10201D; box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.6)">
+      <div style="width: 56px; height: 56px; box-sizing: border-box; border-radius: 50%; border: 6px solid #E4ECEA; border-top-color: #0E4A41" aria-hidden="true"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; line-height: 1.1">Reconnecting</h1>
+        <p style="margin: 0; font-size: 15px; font-weight: 500; line-height: 1.5; color: #51635F">Your seat is being held. If you are not back in time, a bot plays for you until you return.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 13px; font-weight: 700">Seat held for</span>
+          <span style="font-size: 18px; font-weight: 800; color: #B32C1A">0:48</span>
+        </div>
+        <div style="height: 8px; border-radius: 999px; background: #E4ECEA; display: flex" aria-hidden="true">
+          <div style="width: 80%; border-radius: 999px; background: #D63A25"></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isReplaced }}" hint-placeholder-val="{{ false }}">
+    <div role="alertdialog" aria-labelledby="replaced-title" style="display: flex; flex-direction: column; gap: 18px; padding: 28px 24px; border-radius: 28px; background: #FFFFFF; color: #10201D; box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.6)">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h1 id="replaced-title" style="margin: 0; font-size: 26px; font-weight: 800; line-height: 1.1">Playing in another tab</h1>
+        <p style="margin: 0; font-size: 15px; font-weight: 500; line-height: 1.5; color: #51635F">Your seat moved to the tab or device you opened last. You can carry on there, or bring the seat back here.</p>
+      </div>
+      <button style="height: 56px; border: 0; border-radius: 16px; background: #0E4A41; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer">Play here instead</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isKicked }}" hint-placeholder-val="{{ false }}">
+    <div role="alertdialog" aria-labelledby="kicked-title" style="display: flex; flex-direction: column; gap: 18px; padding: 28px 24px; border-radius: 28px; background: #FFFFFF; color: #10201D; box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.6)">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h1 id="kicked-title" style="margin: 0; font-size: 26px; font-weight: 800; line-height: 1.1">The host removed you</h1>
+        <p style="margin: 0; font-size: 15px; font-weight: 500; line-height: 1.5; color: #51635F">You are no longer in room KXT4P9. You can create your own room or join another.</p>
+      </div>
+      <button style="height: 56px; border: 0; border-radius: 16px; background: #0E4A41; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer">Back to home</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isExpired }}" hint-placeholder-val="{{ false }}">
+    <div role="alertdialog" aria-labelledby="expired-title" style="display: flex; flex-direction: column; gap: 18px; padding: 28px 24px; border-radius: 28px; background: #FFFFFF; color: #10201D; box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.6)">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h1 id="expired-title" style="margin: 0; font-size: 26px; font-weight: 800; line-height: 1.1">This room has closed</h1>
+        <p style="margin: 0; font-size: 15px; font-weight: 500; line-height: 1.5; color: #51635F">Rooms close after 10 minutes with nothing happening. Start a new one whenever you are ready.</p>
+      </div>
+      <button style="height: 56px; border: 0; border-radius: 16px; background: #0E4A41; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer">Back to home</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"notice":{"editor":"enum","options":["reconnecting","replaced","kicked","expired"],"default":"reconnecting"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const notice = this.props.notice ?? 'reconnecting';
+return {
+isReconnecting: notice === 'reconnecting',
+isReplaced: notice === 'replaced',
+isKicked: notice === 'kicked',
+isExpired: notice === 'expired'
+};
+}
+}
+</script>
+</body>
+</html>

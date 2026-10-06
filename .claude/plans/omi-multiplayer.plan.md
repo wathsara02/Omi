@@ -75,6 +75,8 @@ The repo contains only `docs/omi-rules.md`, so there are no existing code patter
 
 ### Phase 3: UI design in Claude Design (small to medium; blocks Phase 4)
 
+**Approved 2026-10-06.** Canvas: https://claude.ai/artifact/XJNn9j2NRT1cKiG9J2mQQ6 (page "Screens"). The approved artboards are copied to `docs/design/` as the build reference: green table with a white bottom sheet, thick-outline cards with Gemunu Libre ranks, score bars to 10, Manrope for the interface. They are a visual reference only, not code to ship.
+
 1. Propose a visual direction, palette, and type pairing specific to Omi, for approval or redirection. Not a generic card-table template.
 2. A design canvas covers:
    - home (create or join);
@@ -151,5 +153,5 @@ To be written into `docs/omi-rules.md` before the engine starts. Proposed defaul
 - [ ] Rules gaps resolved in `docs/omi-rules.md`
 - [ ] Engine tests pass at 95%+ coverage
 - [ ] Server integration tests pass, including the hand-leak assertion
-- [ ] UI design approved before Phase 4 starts
+- [x] UI design approved before Phase 4 starts (2026-10-06)
 - [ ] E2E suite passes, including reconnect and bot takeover

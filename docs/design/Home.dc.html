@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omi home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@700;800&family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+body{margin:0}
+a{color:#0C5A4F}a:hover{color:#083C35}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E4A41; color: #FFFFFF; font-family: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif">
+
+  <header style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; padding: 44px 24px 28px">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h1 style="margin: 0; font-size: 72px; font-weight: 800; line-height: 0.95; letter-spacing: -0.03em">Omi</h1>
+      <p style="margin: 0; max-width: 260px; font-size: 17px; font-weight: 500; line-height: 1.4; color: #C4E3DC">Four players, two teams. Call trump, win tricks, first to ten tokens.</p>
+    </div>
+
+    <div style="display: flex; justify-content: center; align-items: flex-end; padding: 0 0 8px" aria-hidden="true">
+      <div style="width: 84px; height: 120px; box-sizing: border-box; padding: 10px; border-radius: 12px; background: #FFFFFF; border: 3px solid #10201D; box-shadow: 4px 4px 0 #06302A; display: flex; flex-direction: column; justify-content: space-between; color: #10201D; transform: rotate(-12deg) translateY(10px)">
+        <span style="font-family: 'Gemunu Libre', 'Arial Narrow', sans-serif; font-size: 40px; font-weight: 800; line-height: 0.9">J</span>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" style="align-self: flex-end"><circle cx="12" cy="7" r="4.2"/><circle cx="6.5" cy="14" r="4.2"/><circle cx="17.5" cy="14" r="4.2"/><path d="M10 22h4l-1.2-6h-1.6Z"/></svg>
+      </div>
+      <div style="width: 84px; height: 120px; margin-left: -22px; box-sizing: border-box; padding: 10px; border-radius: 12px; background: #FFFFFF; border: 3px solid #10201D; box-shadow: 4px 4px 0 #06302A; display: flex; flex-direction: column; justify-content: space-between; color: #D63A25; transform: translateY(-8px)">
+        <span style="font-family: 'Gemunu Libre', 'Arial Narrow', sans-serif; font-size: 40px; font-weight: 800; line-height: 0.9">A</span>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" style="align-self: flex-end"><path d="M12 21C5 15 2 11.5 2 7.8A4.8 4.8 0 0 1 12 6a4.8 4.8 0 0 1 10 1.8C22 11.5 19 15 12 21Z"/></svg>
+      </div>
+      <div style="width: 84px; height: 120px; margin-left: -22px; box-sizing: border-box; padding: 10px; border-radius: 12px; background: #FFFFFF; border: 3px solid #10201D; box-shadow: 4px 4px 0 #06302A; display: flex; flex-direction: column; justify-content: space-between; color: #10201D; transform: rotate(12deg) translateY(10px)">
+        <span style="font-family: 'Gemunu Libre', 'Arial Narrow', sans-serif; font-size: 40px; font-weight: 800; line-height: 0.9">K</span>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" style="align-self: flex-end"><path d="M12 2C8 7 3 10 3 14.5A4.5 4.5 0 0 0 11 17.4L9.5 22h5L13 17.4A4.5 4.5 0 0 0 21 14.5C21 10 16 7 12 2Z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <main style="display: flex; flex-direction: column; gap: 18px; padding: 26px 24px 30px; background: #FFFFFF; color: #10201D; border-radius: 30px 30px 0 0">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="player-name" style="font-size: 13px; font-weight: 700">Your name</label>
+      <input id="player-name" type="text" value="Ruwan" maxlength="20" style="height: 52px; box-sizing: border-box; padding: 0 16px; border-radius: 14px; border: 2px solid #C9D6D3; background: #FFFFFF; color: #10201D; font: inherit; font-size: 17px; font-weight: 600">
+    </div>
+
+    <button style="height: 56px; border: 0; border-radius: 16px; background: #0E4A41; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer">Create a room</button>
+
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="flex-grow: 1; height: 1px; background: #DCE6E3"></span>
+      <span style="font-size: 13px; font-weight: 600; color: #51635F">or join a friend</span>
+      <span style="flex-grow: 1; height: 1px; background: #DCE6E3"></span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="room-code" style="font-size: 13px; font-weight: 700">Room code</label>
+      <div style="display: flex; gap: 10px">
+        <input id="room-code" type="text" placeholder="ABC234" maxlength="6" autocapitalize="characters" style="flex-grow: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border-radius: 14px; border: 2px solid #C9D6D3; background: #FFFFFF; color: #10201D; font: inherit; font-size: 17px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase">
+        <button style="width: 96px; height: 52px; border: 2px solid #0E4A41; border-radius: 14px; background: #FFFFFF; color: #0E4A41; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer">Join</button>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

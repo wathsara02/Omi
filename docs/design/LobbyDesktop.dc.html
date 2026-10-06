@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omi lobby on desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+body{margin:0}
+a{color:#0C5A4F}a:hover{color:#083C35}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; display: flex; flex-wrap: wrap; background: #0E4A41; color: #FFFFFF; font-family: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif">
+
+  <section style="flex: 1 1 420px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 24px; padding: 56px clamp(24px, 6vw, 96px)">
+    <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #C4E3DC">Room code</span>
+    <span style="font-size: clamp(56px, 8vw, 112px); font-weight: 800; line-height: 1; letter-spacing: 0.1em">KXT4P9</span>
+    <p style="margin: 0; max-width: 420px; font-size: 18px; font-weight: 500; line-height: 1.5; color: #C4E3DC">Share this code with three friends. The match needs four players, and you start it when everyone is here.</p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap">
+      <button style="height: 52px; padding: 0 22px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 999px; background: #FFB199; color: #10201D; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+        Copy code
+      </button>
+      <button style="height: 52px; padding: 0 22px; border: 2px solid #C4E3DC; border-radius: 999px; background: transparent; color: #FFFFFF; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer">Leave room</button>
+    </div>
+  </section>
+
+  <main style="flex: 1 1 420px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 56px clamp(24px, 5vw, 72px); background: #FFFFFF; color: #10201D; border-radius: 30px 0 0 30px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+      <h1 style="margin: 0; font-size: 30px; font-weight: 800">Players</h1>
+      <span style="font-size: 16px; font-weight: 700; color: #51635F">3 of 4</span>
+    </div>
+
+    <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+      <li style="display: flex; align-items: center; gap: 14px; min-height: 68px; box-sizing: border-box; padding: 10px 16px; border-radius: 18px; background: #EEF3F2">
+        <span style="width: 48px; height: 48px; border-radius: 50%; background: #0E4A41; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800">R</span>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 17px; font-weight: 700">Ruwan</span>
+          <span style="font-size: 13px; font-weight: 600; color: #51635F">You · host</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; min-height: 68px; box-sizing: border-box; padding: 10px 10px 10px 16px; border-radius: 18px; background: #EEF3F2">
+        <span style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; background: #FFFFFF; color: #10201D; border: 2px solid #C9D6D3; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800">N</span>
+        <span style="flex-grow: 1; font-size: 17px; font-weight: 700">Nimal</span>
+        <button style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: transparent; color: #B32C1A; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Remove</button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; min-height: 68px; box-sizing: border-box; padding: 10px 10px 10px 16px; border-radius: 18px; background: #EEF3F2">
+        <span style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; background: #FFFFFF; color: #10201D; border: 2px solid #C9D6D3; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800">K</span>
+        <span style="flex-grow: 1; font-size: 17px; font-weight: 700">Kamala</span>
+        <button style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: transparent; color: #B32C1A; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Remove</button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; min-height: 68px; box-sizing: border-box; padding: 10px 16px; border-radius: 18px; border: 2px dashed #C9D6D3">
+        <span style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; border: 2px dashed #C9D6D3"></span>
+        <span style="font-size: 16px; font-weight: 600; color: #51635F">Waiting for one more player</span>
+      </li>
+    </ul>
+
+    <p style="margin: 0; font-size: 14px; font-weight: 500; line-height: 1.5; color: #51635F">Teams and seats are drawn at random when the match starts. The room closes after 10 minutes with no changes.</p>
+
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+      <button disabled style="height: 56px; padding: 0 32px; border: 0; border-radius: 16px; background: #DCE6E3; color: #51635F; font: inherit; font-size: 17px; font-weight: 800">Start match</button>
+      <span style="font-size: 14px; font-weight: 600; color: #51635F">Needs 4 players</span>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
