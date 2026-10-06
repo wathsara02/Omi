@@ -13,6 +13,8 @@ export interface Player {
   readonly isBot: boolean;
   /** null until the host starts the match and seats are drawn. */
   readonly seat: Seat | null;
+  /** When a bot takes over this disconnected player’s seat (epoch ms), or null. */
+  readonly holdDeadline: number | null;
 }
 
 /**
@@ -28,6 +30,6 @@ export interface Room {
   readonly match: GameState | null;
   /** Goes up by one with every applied action; clients echo it back. */
   readonly seq: number;
-  /** When the seat on turn will be played for automatically (epoch ms), or null. */
+  /** When the server will next act by itself (epoch ms), or null. */
   readonly deadline: number | null;
 }

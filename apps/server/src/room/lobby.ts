@@ -49,7 +49,7 @@ export const assignSeats = (room: Room, order: readonly Seat[]): Room => ({
 export const updatePlayer = (
   room: Room,
   playerId: string,
-  changes: Partial<Pick<Player, 'socketId' | 'isBot'>>,
+  changes: Partial<Pick<Player, 'socketId' | 'isBot' | 'holdDeadline'>>,
 ): Room => ({
   ...room,
   players: room.players.map((player) =>
@@ -70,7 +70,7 @@ export const hasConnectedHuman = (room: Room): boolean =>
   room.players.some((player) => player.socketId !== null);
 
 /** The room as one player may see it. Built field by field, never by spreading. */
-export const toRoomSnapshot = (room: Room, youId: string): RoomSnapshot => ({
+export const toRoomSnapshot = (room: Room, youId: string, serverNow: number): RoomSnapshot => ({
   code: room.code,
   status: room.status,
   youId,
@@ -81,5 +81,7 @@ export const toRoomSnapshot = (room: Room, youId: string): RoomSnapshot => ({
     isConnected: player.socketId !== null,
     isBot: player.isBot,
     seat: player.seat,
+    holdDeadline: player.holdDeadline,
   })),
+  serverNow,
 });

@@ -180,7 +180,11 @@ export class GameService {
     }
     this.timers.clearHold(existing.code, player.id);
     this.bindings.set(socketId, { code: existing.code, playerId: player.id });
-    const room = updatePlayer(existing, player.id, { socketId, isBot: false });
+    const room = updatePlayer(existing, player.id, {
+      socketId,
+      isBot: false,
+      holdDeadline: null,
+    });
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player resumed');
 
     const wasBotOnTurn = player.isBot && room.match?.turn === player.seat;
@@ -270,7 +274,10 @@ export class GameService {
     const remaining =
       room.status === 'lobby'
         ? removePlayer(room, player.id)
-        : updatePlayer(room, player.id, { socketId: null });
+        : updatePlayer(room, player.id, {
+            socketId: null,
+            holdDeadline: room.status === 'playing' ? Date.now() + this.timings.holdMs : null,
+          });
     if (remaining === null || !hasConnectedHuman(remaining)) {
       this.removeRoom(room.code);
       return;
@@ -312,6 +319,9 @@ export class GameService {
       match: applied.state,
       seq: room.seq + 1,
       status: finished ? 'finished' : 'playing',
+      players: finished
+        ? room.players.map((player) => ({ ...player, holdDeadline: null }))
+        : room.players,
     });
     this.store.save(next);
     if (finished) {
@@ -333,7 +343,7 @@ export class GameService {
 
     if (match.phase === 'round-scored') {
       this.armStep(room, 'next-round', this.timings.roundPauseMs);
-      return { ...room, deadline: null };
+      return { ...room, deadline: Date.now() + this.timings.roundPauseMs };
     }
     const onTurn = match.turn === null ? undefined : findPlayerBySeat(room, match.turn);
     if (onTurn?.isBot) {
@@ -395,7 +405,7 @@ export class GameService {
     const player = existing && findPlayer(existing, playerId);
     if (!existing || !player || player.socketId !== null) return;
 
-    const asBot = updatePlayer(existing, playerId, { isBot: true });
+    const asBot = updatePlayer(existing, playerId, { isBot: true, holdDeadline: null });
     const isBotsTurn = asBot.status === 'playing' && asBot.match?.turn === player.seat;
     // If the bot inherits a turn in progress it acts after the bot delay.
     const room = isBotsTurn ? this.schedule(asBot) : asBot;
@@ -445,6 +455,7 @@ export class GameService {
       socketId,
       isBot: false,
       seat: null,
+      holdDeadline: null,
     };
   }
 
@@ -467,7 +478,7 @@ export class GameService {
   private sendRoom(room: Room): void {
     for (const player of room.players) {
       if (player.socketId === null) continue;
-      this.emit(player.socketId, 'room:state', toRoomSnapshot(room, player.id));
+      this.emit(player.socketId, 'room:state', toRoomSnapshot(room, player.id, Date.now()));
     }
   }
 
@@ -482,6 +493,7 @@ export class GameService {
       view: viewFor(room.match, player.seat),
       seq: room.seq,
       deadline: room.deadline,
+      serverNow: Date.now(),
       events,
     });
   }

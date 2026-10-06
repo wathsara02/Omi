@@ -205,13 +205,6 @@ describe('between rounds and at the end', () => {
     expect(harness.game('s0').events).toMatchObject([{ type: 'round-started', roundNumber: 2 }]);
   });
 
-  test('sets no turn deadline while a round is being scored', () => {
-    const harness = started();
-    playRound(harness);
-
-    expect(harness.game('s0').deadline).toBeNull();
-  });
-
   test('marks the room finished when a team reaches the target, and stops all timers', () => {
     const harness = started();
 

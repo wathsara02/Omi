@@ -19,6 +19,7 @@ const player = (id: string, overrides: Partial<Player> = {}): Player => ({
   socketId: `socket-${id}`,
   isBot: false,
   seat: null,
+  holdDeadline: null,
   ...overrides,
 });
 
@@ -166,9 +167,14 @@ describe('toRoomSnapshot', () => {
   });
 
   test('describes every player publicly', () => {
-    const snapshot = toRoomSnapshot(room, 'b');
+    const snapshot = toRoomSnapshot(room, 'b', 1234);
 
-    expect(snapshot).toMatchObject({ code: 'ABC234', status: 'lobby', youId: 'b' });
+    expect(snapshot).toMatchObject({
+      code: 'ABC234',
+      status: 'lobby',
+      youId: 'b',
+      serverNow: 1234,
+    });
     expect(snapshot.players[0]).toEqual({
       id: 'a',
       name: 'Player a',
@@ -176,12 +182,13 @@ describe('toRoomSnapshot', () => {
       isConnected: true,
       isBot: false,
       seat: 0,
+      holdDeadline: null,
     });
     expect(snapshot.players[2]).toMatchObject({ isHost: false, isConnected: false, isBot: true });
   });
 
   test('never includes a token hash, a socket id or the match state', () => {
-    const json = JSON.stringify(toRoomSnapshot(room, 'b'));
+    const json = JSON.stringify(toRoomSnapshot(room, 'b', 1234));
 
     expect(json).not.toMatch(/tokenHash|socketId|socket-|hash-|match|rng|stock/);
   });

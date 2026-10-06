@@ -10,6 +10,7 @@ const room = (code: string) =>
     socketId: 'socket-a',
     isBot: false,
     seat: null,
+    holdDeadline: null,
   });
 
 describe('InMemoryRoomStore', () => {

@@ -52,6 +52,8 @@ export interface RoomPlayer {
   readonly isBot: boolean;
   /** null until the host starts the match and seats are drawn. */
   readonly seat: Seat | null;
+  /** When a bot will take this disconnected player’s seat (epoch ms), or null. */
+  readonly holdDeadline: number | null;
 }
 
 export interface RoomSnapshot {
@@ -60,6 +62,8 @@ export interface RoomSnapshot {
   /** The id of the player this snapshot was sent to. */
   readonly youId: string;
   readonly players: readonly RoomPlayer[];
+  /** The server’s clock when this was sent (epoch ms). Deadlines are in this clock. */
+  readonly serverNow: number;
 }
 
 export interface GameSnapshot {
@@ -67,8 +71,13 @@ export interface GameSnapshot {
   readonly view: PlayerView;
   /** Send this back with the next action. */
   readonly seq: number;
-  /** When the seat on turn will be played for automatically (epoch ms), or null. */
+  /**
+   * When the server will next act by itself (epoch ms): play for the seat on
+   * turn, or deal the next round. null when nothing is pending or a bot is on turn.
+   */
   readonly deadline: number | null;
+  /** The server’s clock when this was sent (epoch ms). Deadlines are in this clock. */
+  readonly serverNow: number;
   /** What just happened, for animation. Public information only. */
   readonly events: readonly GameEvent[];
 }
