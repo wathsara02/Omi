@@ -1,5 +1,5 @@
 import type { Card, Suit } from '@omi/engine';
-import type { Ack, Session } from '@omi/protocol';
+import type { Ack, RoomSnapshot, Session } from '@omi/protocol';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Connection } from '../net/connection';
 import { clearSession, loadSession, saveName, saveSession } from '../net/session';
@@ -33,16 +33,29 @@ const NO_SAVED_SEAT: Ack<never> = {
   error: { code: 'session-invalid', message: 'That seat could not be restored.' },
 };
 
+/** How long to wait before trying again after a resume that got no usable answer. */
+const RESUME_RETRY_MS = 3000;
+
+/** One attempt to reclaim a seat: which room, on which connection, which try. */
+const attemptKey = (code: string, connection: number, retry: number): string =>
+  `${code}:${connection}:${retry}`;
+
 /** Connects the socket to the store and exposes what the screens can do. */
 export const useGame = (connection: Connection): GameController => {
   const [state, dispatch] = useReducer(reduce, INITIAL_STATE);
   const [route, navigate] = useRoute();
-  const [isResuming, setIsResuming] = useState(false);
   // Counts connections, so a seat is reclaimed once per connection and no more.
   const [connectionCount, setConnectionCount] = useState(0);
-  const seatedOnConnection = useRef<{ code: string; connection: number } | null>(null);
-  const pendingResumes = useRef(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const [resumingKey, setResumingKey] = useState<string | null>(null);
+  const latestConnection = useRef(0);
+  const attempted = useRef<string | null>(null);
+  const roomRef = useRef<RoomSnapshot | null>(null);
   const roomCode = route.name === 'room' ? route.code : null;
+
+  useEffect(() => {
+    roomRef.current = state.room;
+  }, [state.room]);
 
   useEffect(() => {
     const stops = [
@@ -51,8 +64,9 @@ export const useGame = (connection: Connection): GameController => {
           dispatch({ type: 'offline', at: Date.now() });
           return;
         }
+        latestConnection.current += 1;
+        setConnectionCount(latestConnection.current);
         dispatch({ type: 'online' });
-        setConnectionCount((count) => count + 1);
       }),
       connection.on('room:state', (snapshot) => {
         dispatch({ type: 'room', snapshot, receivedAt: Date.now() });
@@ -61,34 +75,54 @@ export const useGame = (connection: Connection): GameController => {
         dispatch({ type: 'game', snapshot, receivedAt: Date.now() });
       }),
       connection.on('session:replaced', () => dispatch({ type: 'replaced' })),
-      connection.on('room:closed', (reason) => dispatch({ type: 'closed', reason })),
+      connection.on('room:closed', (reason) => {
+        // The token of a room the player was removed from, or that expired, is useless.
+        if (roomRef.current !== null) clearSession(roomRef.current.code);
+        dispatch({ type: 'closed', reason });
+      }),
     ];
     return () => stops.forEach((stop) => stop());
   }, [connection]);
 
-  // A removed or expired room's token is useless; forget it.
-  const closedRoomCode = state.closed !== null && state.closed !== 'replaced' ? roomCode : null;
+  // The Back button, or a pasted link, moved away from the room this tab is in:
+  // give that seat up, so the tab is free for wherever it went.
   useEffect(() => {
-    if (closedRoomCode !== null) clearSession(closedRoomCode);
-  }, [closedRoomCode]);
+    const room = roomRef.current;
+    if (room === null || room.code === roomCode) return;
+    void connection.leave().then(() => dispatch({ type: 'reset' }));
+  }, [connection, roomCode]);
 
   // On every new connection, reclaim the seat for the room in the address bar.
+  const hasOtherRoom = state.room !== null && state.room.code !== roomCode;
+  const isReplaced = state.closed === 'replaced';
   useEffect(() => {
-    if (!state.isOnline || roomCode === null) return;
-    const seated = seatedOnConnection.current;
-    if (seated?.code === roomCode && seated.connection === connectionCount) return;
+    // A tab whose seat was taken elsewhere waits to be asked before taking it back.
+    if (!state.isOnline || roomCode === null || hasOtherRoom || isReplaced) return undefined;
+    const key = attemptKey(roomCode, connectionCount, retryCount);
+    if (attempted.current === key) return undefined;
     const session = loadSession(roomCode);
-    if (!session) return;
+    if (!session) return undefined;
 
-    seatedOnConnection.current = { code: roomCode, connection: connectionCount };
-    pendingResumes.current += 1;
-    setIsResuming(true);
+    attempted.current = key;
+    setResumingKey(key);
+    let retry: ReturnType<typeof setTimeout> | undefined;
     void connection.resume(roomCode, session.token).then((ack) => {
-      if (!ack.ok && ack.error.code !== 'already-in-room') clearSession(roomCode);
-      pendingResumes.current -= 1;
-      setIsResuming(pendingResumes.current > 0);
+      // An answer for an older connection says nothing about this one.
+      if (latestConnection.current !== connectionCount) return;
+      if (ack.ok || ack.error.code === 'already-in-room') {
+        setResumingKey(null);
+      } else if (ack.error.code === 'session-invalid') {
+        // The server no longer knows this seat: forget it and the table it showed.
+        clearSession(roomCode);
+        dispatch({ type: 'reset' });
+        setResumingKey(null);
+      } else {
+        // No answer, or a busy server: the seat may still be there. Keep the token and try again.
+        retry = setTimeout(() => setRetryCount((count) => count + 1), RESUME_RETRY_MS);
+      }
     });
-  }, [connection, connectionCount, roomCode, state.isOnline]);
+    return () => clearTimeout(retry);
+  }, [connection, connectionCount, hasOtherRoom, isReplaced, retryCount, roomCode, state.isOnline]);
 
   const enter = useCallback(
     (ack: Ack<Session>, name: string): Ack<Session> => {
@@ -96,14 +130,19 @@ export const useGame = (connection: Connection): GameController => {
       const { code, playerId, token } = ack.data;
       saveSession(code, { playerId, token });
       saveName(name);
-      seatedOnConnection.current = { code, connection: connectionCount };
+      // Already seated on this connection: nothing to reclaim.
+      attempted.current = attemptKey(code, latestConnection.current, retryCount);
       navigate(roomPath(code));
       return ack;
     },
-    [connectionCount, navigate],
+    [navigate, retryCount],
   );
 
   const seq = state.game?.seq;
+  const isResuming =
+    resumingKey !== null &&
+    roomCode !== null &&
+    resumingKey === attemptKey(roomCode, connectionCount, retryCount);
 
   return useMemo<GameController>(
     () => ({
@@ -115,8 +154,10 @@ export const useGame = (connection: Connection): GameController => {
       startMatch: () => connection.start(),
       kick: (playerId) => connection.kick(playerId),
       leaveRoom: async () => {
-        await connection.leave();
-        if (roomCode !== null) clearSession(roomCode);
+        const ack = await connection.leave();
+        // With no answer the server may still hold the seat, so the token is kept.
+        const hasLeft = ack.ok || ack.error.code === 'not-in-room';
+        if (hasLeft && roomCode !== null) clearSession(roomCode);
         dispatch({ type: 'reset' });
         navigate(HOME_PATH);
       },

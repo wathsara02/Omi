@@ -33,8 +33,9 @@ function RoomView({ game, code }: { game: GameController; code: string }): React
   const { room } = state;
 
   if (room === null || room.code !== code) {
-    const hasSavedSeat = loadSession(code) !== null;
-    if (game.isResuming || (hasSavedSeat && !state.isOnline)) {
+    // A saved seat is either being reclaimed or about to be; a seat the server
+    // has refused is forgotten, which is what lets the join form show.
+    if (game.isResuming || loadSession(code) !== null) {
       return <Waiting message="Taking your seat…" />;
     }
     return (

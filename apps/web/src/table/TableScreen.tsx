@@ -1,4 +1,4 @@
-import type { Card, Suit } from '@omi/engine';
+import type { Card, CompletedTrick, Suit } from '@omi/engine';
 import type { Ack, GameSnapshot, RoomSnapshot } from '@omi/protocol';
 import { useEffect, useState, type ReactElement } from 'react';
 import { suitName } from '../cards/cardNames';
@@ -32,6 +32,12 @@ interface MoveError {
   readonly message: string;
 }
 
+/** A finished trick being kept on the table, and the state it arrived with. */
+interface HeldTrick {
+  readonly seq: number;
+  readonly trick: CompletedTrick;
+}
+
 export function TableScreen({
   room,
   game,
@@ -42,22 +48,28 @@ export function TableScreen({
 }: TableScreenProps): ReactElement {
   const { view, seq } = game;
   const isWide = useIsWide();
-  const [shownTrickSeq, setShownTrickSeq] = useState<number | null>(null);
+  const [heldTrick, setHeldTrick] = useState<HeldTrick | null>(null);
+  const [seenSeq, setSeenSeq] = useState<number | null>(null);
   const [moveError, setMoveError] = useState<MoveError | null>(null);
 
   // The server has already moved on to the next trick; keep the finished one
-  // on screen for a moment so everyone sees who took it.
-  const justWon =
-    view.phase === 'playing' &&
-    view.previousTrick !== null &&
-    game.events.some((event) => event.type === 'trick-won');
+  // on screen for a moment so everyone sees who took it. It is captured when
+  // its state arrives, so a quick next card does not cut the moment short.
+  if (seenSeq !== seq) {
+    setSeenSeq(seq);
+    const wasWon = game.events.some((event) => event.type === 'trick-won');
+    if (wasWon && view.phase === 'playing' && view.previousTrick !== null) {
+      setHeldTrick({ seq, trick: view.previousTrick });
+    }
+  }
+  const heldSeq = heldTrick?.seq;
   useEffect(() => {
-    if (!justWon) return undefined;
-    const timer = setTimeout(() => setShownTrickSeq(seq), TRICK_SHOWN_MS);
+    if (heldSeq === undefined) return undefined;
+    const timer = setTimeout(() => setHeldTrick(null), TRICK_SHOWN_MS);
     return () => clearTimeout(timer);
-  }, [justWon, seq]);
-  const isShowingWonTrick = justWon && shownTrickSeq !== seq;
-  const trickWinner = isShowingWonTrick ? (view.previousTrick?.winner ?? null) : null;
+  }, [heldSeq]);
+  const isShowingWonTrick = heldTrick !== null;
+  const trickWinner = heldTrick?.trick.winner ?? null;
 
   const report = async (request: Promise<Ack>): Promise<void> => {
     const ack = await request;
@@ -89,7 +101,7 @@ export function TableScreen({
       room={room}
       view={view}
       clockOffset={clockOffset}
-      trick={isShowingWonTrick ? view.previousTrick : view.currentTrick}
+      trick={heldTrick?.trick ?? view.currentTrick}
       winner={trickWinner}
       cardSize={isWide ? 'large' : 'table'}
     />

@@ -57,12 +57,12 @@ export function ReconnectingNotice({
           : 'A bot is playing your seat. You take it back as soon as you reconnect.'}
       </p>
       {isHeld && (
-        <div className="dialog__hold">
+        <div className="dialog__hold" aria-hidden="true">
           <div className="dialog__hold-row">
             <span>Seat held for</span>
             <span className="dialog__hold-clock">{formatClock(remaining)}</span>
           </div>
-          <div className="countdown__track" aria-hidden="true">
+          <div className="countdown__track">
             <div
               className="countdown__fill"
               style={{ width: `${(remaining / holdMs) * PERCENT}%` }}
@@ -84,6 +84,7 @@ export function ReplacedNotice({ onPlayHere }: ReplacedNoticeProps): ReactElemen
   const [isBusy, setIsBusy] = useState(false);
 
   const playHere = async (): Promise<void> => {
+    if (isBusy) return;
     setIsBusy(true);
     const ack = await onPlayHere();
     setIsBusy(false);
@@ -105,7 +106,7 @@ export function ReplacedNotice({ onPlayHere }: ReplacedNoticeProps): ReactElemen
         type="button"
         className="button button--primary"
         autoFocus
-        disabled={isBusy}
+        aria-disabled={isBusy}
         onClick={() => void playHere()}
       >
         Play here instead

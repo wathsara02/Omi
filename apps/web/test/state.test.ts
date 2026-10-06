@@ -22,6 +22,20 @@ describe('reduce', () => {
     expect(reduce(stillOffline, { type: 'online' }).offlineSince).toBeNull();
   });
 
+  test('stays "reconnecting" after coming back online until the room is heard from', () => {
+    const dropped = reduce(inRoom(), { type: 'offline', at: 500 });
+
+    const online = reduce(dropped, { type: 'online' });
+    const seated = reduce(online, {
+      type: 'room',
+      snapshot: roomSnapshot(),
+      receivedAt: SERVER_NOW,
+    });
+
+    expect(online).toMatchObject({ isOnline: true, offlineSince: 500 });
+    expect(seated.offlineSince).toBeNull();
+  });
+
   test('stores the room and works out the clock difference', () => {
     const state = reduce(INITIAL_STATE, {
       type: 'room',

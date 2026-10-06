@@ -76,8 +76,11 @@ export function TrickArea({
       </div>
       <div className="trick__count">
         <span className="eyebrow">Tricks</span>
-        <span className="trick__count-value" aria-label={`Us ${tricks.us}, them ${tricks.them}`}>
+        <span className="trick__count-value" aria-hidden="true">
           {tricks.us} – {tricks.them}
+        </span>
+        <span className="visually-hidden">
+          Us {tricks.us}, them {tricks.them}
         </span>
       </div>
       <div className="trick__side trick__side--right">

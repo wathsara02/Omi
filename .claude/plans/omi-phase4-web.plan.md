@@ -77,6 +77,11 @@ The design shows three things the server does not send yet. All are public infor
 | MEDIUM | Reconnect loops or duplicate resumes | One socket per tab, resume only on connect, guarded by tests with a fake socket |
 | LOW | Fonts without Sinhala | Out of scope for now; the font stack names a Sinhala fallback |
 
+## Deployment notes
+
+- Whatever serves the built files must send `Content-Security-Policy: frame-ancestors 'none'` (or `X-Frame-Options: DENY`) as a response header. A policy in a meta tag cannot stop other sites framing the game.
+- Set `VITE_SERVER_URL` at build time; it is written into the page's security policy.
+
 ## Out of scope
 
 - Sinhala text, illustrated court cards, rematch, chat, sound.

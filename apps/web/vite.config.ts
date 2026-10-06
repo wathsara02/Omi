@@ -38,6 +38,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
     plugins: [react(), contentSecurityPolicy(env.VITE_SERVER_URL ?? DEFAULT_SERVER_URL)],
+    // Fonts inlined as data: URLs would be blocked by font-src 'self'.
+    build: { assetsInlineLimit: 0 },
     test: {
       environment: 'jsdom',
       include: ['test/**/*.test.{ts,tsx}'],

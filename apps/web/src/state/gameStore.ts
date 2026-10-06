@@ -36,7 +36,13 @@ export const INITIAL_STATE: AppState = {
 export const reduce = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'online':
-      return { ...state, isOnline: true, offlineSince: null };
+      // Being connected is not yet being seated: while a room is on screen, the
+      // reconnect notice stays until that room is heard from again.
+      return {
+        ...state,
+        isOnline: true,
+        offlineSince: state.room === null ? null : state.offlineSince,
+      };
     case 'offline':
       return { ...state, isOnline: false, offlineSince: state.offlineSince ?? action.at };
     case 'room':
@@ -48,6 +54,7 @@ export const reduce = (state: AppState, action: AppAction): AppState => {
         clockOffset: action.snapshot.serverNow - action.receivedAt,
         // Hearing from the room again means this tab holds the seat once more.
         closed: null,
+        offlineSince: null,
       };
     case 'game':
       return {
@@ -58,8 +65,8 @@ export const reduce = (state: AppState, action: AppAction): AppState => {
     case 'replaced':
       return { ...state, closed: 'replaced' };
     case 'closed':
-      return { ...state, room: null, game: null, closed: action.reason };
+      return { ...state, room: null, game: null, closed: action.reason, offlineSince: null };
     case 'reset':
-      return { ...state, room: null, game: null, closed: null };
+      return { ...state, room: null, game: null, closed: null, offlineSince: null };
   }
 };

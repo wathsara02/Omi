@@ -185,6 +185,9 @@ describe('notices', () => {
     expect(screen.getByText('Seat held for')).toBeInTheDocument();
 
     act(() => socket.goOnline());
+    expect(screen.getByRole('status', { name: 'Reconnecting' })).toBeInTheDocument();
+
+    act(() => socket.receive('room:state', roomSnapshot()));
     expect(screen.queryByRole('status', { name: 'Reconnecting' })).not.toBeInTheDocument();
   });
 
