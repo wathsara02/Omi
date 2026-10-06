@@ -1,0 +1,172 @@
+.lobby__header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: var(--space-7) var(--space-6) 26px;
+}
+
+.lobby__code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.lobby__code {
+  font-size: clamp(2.5rem, 1.5rem + 6vw, 2.9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.12em;
+}
+
+.lobby__hint {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-on-table-muted);
+}
+
+.lobby__sheet {
+  flex: 1;
+  padding: var(--space-6) var(--space-5) 26px;
+}
+
+.lobby__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-1);
+}
+
+.lobby__title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.lobby__count {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lobby__players {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lobby__player {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border-radius: var(--radius-row);
+  background: var(--color-surface);
+}
+
+.lobby__player--empty {
+  border: 2px dashed var(--color-line-strong);
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lobby__empty-seat {
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: 2px dashed var(--color-line-strong);
+  border-radius: 50%;
+}
+
+.lobby__player-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lobby__player-name {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby__player-detail {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.lobby__note {
+  padding: 0 var(--space-1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.lobby__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.lobby__needs {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* Desktop: code on the left, players on the right (docs/design/LobbyDesktop). */
+@media (min-width: 900px) {
+  .lobby {
+    flex-direction: row;
+    min-height: 100%;
+  }
+
+  .lobby__header {
+    flex: 1 1 420px;
+    justify-content: center;
+    gap: var(--space-6);
+    padding: 56px clamp(24px, 6vw, 96px);
+  }
+
+  .lobby__code-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-6);
+  }
+
+  .lobby__code {
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    letter-spacing: 0.1em;
+  }
+
+  .lobby__hint {
+    max-width: 420px;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .lobby__sheet {
+    flex: 1 1 420px;
+    justify-content: center;
+    gap: var(--space-5);
+    padding: 56px clamp(24px, 5vw, 72px);
+    border-radius: var(--radius-sheet) 0 0 var(--radius-sheet);
+  }
+
+  .lobby__title {
+    font-size: 30px;
+  }
+
+  .lobby__actions {
+    margin-top: 0;
+  }
+}
