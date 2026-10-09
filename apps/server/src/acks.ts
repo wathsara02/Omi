@@ -16,6 +16,7 @@ const MESSAGES: Readonly<Record<ErrorCode, string>> = {
   'player-not-found': 'That player is not in the room.',
   'cannot-kick-self': 'You cannot remove yourself; leave the room instead.',
   'no-match': 'There is no match in progress.',
+  'match-not-over': 'The match has not ended yet.',
   'stale-action': 'That turn has already passed.',
   'session-invalid': 'That seat could not be restored.',
   internal: 'Something went wrong.',

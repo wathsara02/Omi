@@ -18,6 +18,7 @@ const player = (id: string, overrides: Partial<Player> = {}): Player => ({
   tokenHash: Buffer.from(`hash-${id}`),
   socketId: `socket-${id}`,
   isBot: false,
+  isReady: false,
   seat: null,
   holdDeadline: null,
   ...overrides,
@@ -181,6 +182,7 @@ describe('toRoomSnapshot', () => {
       isHost: true,
       isConnected: true,
       isBot: false,
+      isReady: false,
       seat: 0,
       holdDeadline: null,
     });

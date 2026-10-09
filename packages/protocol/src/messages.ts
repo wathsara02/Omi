@@ -23,6 +23,7 @@ export type ErrorCode =
   | 'player-not-found'
   | 'cannot-kick-self'
   | 'no-match'
+  | 'match-not-over'
   | 'stale-action'
   | 'session-invalid'
   | 'internal';
@@ -50,6 +51,8 @@ export interface RoomPlayer {
   readonly isHost: boolean;
   readonly isConnected: boolean;
   readonly isBot: boolean;
+  /** Has asked for another match. Only ever true in a finished room. */
+  readonly isReady: boolean;
   /** null until the host starts the match and seats are drawn. */
   readonly seat: Seat | null;
   /** When a bot will take this disconnected player’s seat (epoch ms), or null. */
@@ -99,6 +102,8 @@ export interface ClientToServerEvents {
   'room:leave': (ack: AckCallback) => void;
   /** Host only, and only before the match starts. */
   'room:kick': (payload: KickPayload, ack: AckCallback) => void;
+  /** After a match: ready for another. The rematch starts once every connected player is. */
+  'room:ready': (ack: AckCallback) => void;
   'game:call-trump': (payload: CallTrumpPayload, ack: AckCallback) => void;
   'game:play-card': (payload: PlayCardPayload, ack: AckCallback) => void;
 }

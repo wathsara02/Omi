@@ -28,6 +28,7 @@ export const roomSnapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapsho
     isHost: seat === 0,
     isConnected: true,
     isBot: false,
+    isReady: false,
     seat: seat as Seat,
     holdDeadline: null,
   })),

@@ -11,6 +11,8 @@ export interface Player {
   readonly socketId: string | null;
   /** True once the disconnect hold has expired and a bot is playing the seat. */
   readonly isBot: boolean;
+  /** Has asked for another match. Only ever true in a finished room. */
+  readonly isReady: boolean;
   /** null until the host starts the match and seats are drawn. */
   readonly seat: Seat | null;
   /** When a bot takes over this disconnected player’s seat (epoch ms), or null. */

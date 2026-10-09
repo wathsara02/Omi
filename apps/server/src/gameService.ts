@@ -44,6 +44,7 @@ import {
   findPlayer,
   findPlayerBySeat,
   hasConnectedHuman,
+  isRematchAgreed,
   removePlayer,
   startProblem,
   toRoomSnapshot,
@@ -237,6 +238,23 @@ export class GameService {
     }));
   }
 
+  /**
+   * After a match: this player wants another. The rematch starts once every
+   * connected player has said so. A ready mark cannot be withdrawn.
+   */
+  ready(socketId: string): Ack {
+    const seated = this.seatedAt(socketId);
+    if (!seated) return fail('not-in-room');
+    if (seated.room.status !== 'finished') return fail('match-not-over');
+    if (seated.player.isReady) return OK;
+
+    const room = updatePlayer(seated.room, seated.player.id, { isReady: true });
+    this.store.save(room);
+    if (isRematchAgreed(room)) this.startRematch(room);
+    else this.sendRoom(room);
+    return OK;
+  }
+
   /** The host removes a player from the lobby. Not possible once the match has started. */
   kick(socketId: string, payload: KickPayload): Ack {
     const seated = this.seatedAt(socketId);
@@ -276,6 +294,7 @@ export class GameService {
         ? removePlayer(room, player.id)
         : updatePlayer(room, player.id, {
             socketId: null,
+            isReady: false,
             holdDeadline: room.status === 'playing' ? Date.now() + this.timings.holdMs : null,
           });
     if (remaining === null || !hasConnectedHuman(remaining)) {
@@ -286,7 +305,9 @@ export class GameService {
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player disconnected');
     if (remaining.status === 'playing') this.startHold(room.code, player.id);
     if (remaining.status === 'lobby') this.armIdle(room.code);
-    this.sendRoom(remaining);
+    // The player who left may have been the only one not yet ready.
+    if (isRematchAgreed(remaining)) this.startRematch(remaining);
+    else this.sendRoom(remaining);
   }
 
   /** Cancels every timer. Call before shutting the process down. */
@@ -310,6 +331,37 @@ export class GameService {
     if (!result.ok) return failFromEngine(result.error);
     this.commit(room, result.value);
     return OK;
+  }
+
+  /**
+   * Deals a new match in a finished room: same seats and teams, a fresh seed.
+   * A seat nobody is connected to goes to a bot, as an abandoned seat does.
+   */
+  private startRematch(finished: Room): void {
+    const match = createMatch(this.rules, newSeed());
+    if (!match.ok) {
+      this.logger.error({ room: logRef(finished.code), code: match.error.code }, 'no rematch');
+      this.sendRoom(finished);
+      return;
+    }
+    const room = this.schedule({
+      ...finished,
+      status: 'playing',
+      match: match.value,
+      // Carries on from the old match, so an action meant for it can never apply.
+      seq: finished.seq + 1,
+      players: finished.players.map((player) => ({
+        ...player,
+        isReady: false,
+        isBot: player.socketId === null,
+        holdDeadline: null,
+      })),
+    });
+    this.store.save(room);
+    this.timers.clearIdle(room.code);
+    this.logger.info({ room: logRef(room.code) }, 'rematch started');
+    this.sendRoom(room);
+    this.sendGame(room, []);
   }
 
   private commit(room: Room, applied: Applied): void {
@@ -454,6 +506,7 @@ export class GameService {
       tokenHash: hashToken(token),
       socketId,
       isBot: false,
+      isReady: false,
       seat: null,
       holdDeadline: null,
     };
