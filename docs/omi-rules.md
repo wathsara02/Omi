@@ -120,6 +120,12 @@ These are not part of traditional Omi; they cover situations a web game must han
   lobby that has not started, counted from the last time someone joined, left or
   was removed, or a finished match, counted from its end. A match in progress
   is never removed for being idle.
+- **Rematch:** after a match ends, each player can mark themselves ready for
+  another match; a ready mark cannot be withdrawn. The new match starts as soon
+  as every connected player is ready. It keeps the same seats and teams, starts
+  at 0 tokens each, and its first dealer is chosen at random. A seat whose
+  player is not connected is played by a bot, and the player can take it back as
+  in **Abandon**. Ready marks do not extend the idle time of a finished room.
 - **Table talk:** no signalling of cards between partners. In-game chat, if any,
   is visible to all four players.
 - **Hidden information:** a player sees only their own hand, the cards played to
