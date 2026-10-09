@@ -226,8 +226,18 @@
   gap: 0;
 }
 
-.table__hand--crowded li + li {
-  margin-left: -12px;
+/*
+ * Each card but the last gets a slot 12px narrower than itself, so the next one
+ * overlaps it. On a narrow phone the slots shrink further, and the overlap
+ * grows, rather than the hand running off the side of the screen.
+ */
+.table__hand--crowded li {
+  flex: 0 1 42px;
+  min-width: 0;
+}
+
+.table__hand--crowded li:last-child {
+  flex: none;
 }
 
 .table__footnote {
@@ -521,8 +531,8 @@
     padding-top: var(--space-4);
   }
 
-  .table__hand--crowded li + li {
-    margin-left: 0;
+  .table__hand--crowded li {
+    flex: none;
   }
 
   .table__suits {
