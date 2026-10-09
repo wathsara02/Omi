@@ -4,7 +4,7 @@ import {
   type Server as HttpServer,
   type ServerResponse,
 } from 'node:http';
-import type { RulesConfig } from '@omi/engine';
+import type { RulesConfig, Seed } from '@omi/engine';
 import {
   callTrumpSchema,
   createRoomSchema,
@@ -52,6 +52,8 @@ export interface OmiServerOptions {
   readonly timings?: Timings;
   readonly maxRooms?: number;
   readonly rules?: RulesConfig;
+  /** Tests only: a fixed source of shuffle seeds. Never set this on a real server. */
+  readonly newSeed?: () => Seed;
   readonly limits?: Limits;
   readonly maxConnections?: number;
   readonly maxConnectionsPerAddress?: number;
@@ -143,6 +145,7 @@ export const createOmiServer = (options: OmiServerOptions): OmiServer => {
     ...(options.timings && { timings: options.timings }),
     ...(options.maxRooms !== undefined && { maxRooms: options.maxRooms }),
     ...(options.rules && { rules: options.rules }),
+    ...(options.newSeed && { newSeed: options.newSeed }),
   });
 
   const perAddress = (address: string): { limiter: RateLimiter; key: string } => ({

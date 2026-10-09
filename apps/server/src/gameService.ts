@@ -11,6 +11,7 @@ import {
   type GameEvent,
   type RulesConfig,
   type Seat,
+  type Seed,
 } from '@omi/engine';
 import type {
   Ack,
@@ -95,6 +96,12 @@ export interface GameServiceOptions {
   readonly timings?: Timings;
   readonly maxRooms?: number;
   readonly rules?: RulesConfig;
+  /**
+   * Where shuffle seeds come from. Leave it out: the default draws from the
+   * cryptographic generator. A fixed source makes every deal predictable, so it
+   * is for tests only.
+   */
+  readonly newSeed?: () => Seed;
 }
 
 interface Binding {
@@ -121,6 +128,7 @@ export class GameService {
   private readonly timings: Timings;
   private readonly maxRooms: number;
   private readonly rules: RulesConfig;
+  private readonly newSeed: () => Seed;
   private readonly bindings = new Map<string, Binding>();
   private readonly timers = new RoomTimers();
 
@@ -131,6 +139,7 @@ export class GameService {
     this.timings = options.timings ?? DEFAULT_TIMINGS;
     this.maxRooms = options.maxRooms ?? DEFAULT_MAX_ROOMS;
     this.rules = options.rules ?? DEFAULT_RULES;
+    this.newSeed = options.newSeed ?? newSeed;
   }
 
   createRoom(socketId: string, payload: CreateRoomPayload): Ack<Session> {
@@ -203,7 +212,7 @@ export class GameService {
     const problem = startProblem(seated.room, seated.player.id);
     if (problem) return fail(problem);
 
-    const match = createMatch(this.rules, newSeed());
+    const match = createMatch(this.rules, this.newSeed());
     if (!match.ok) {
       this.logger.error(
         { room: logRef(seated.room.code), code: match.error.code },
@@ -369,7 +378,7 @@ export class GameService {
     try {
       const result: ApplyResult =
         step === 'next-round'
-          ? applyAction(room.match, { type: 'next-round', seed: newSeed() })
+          ? applyAction(room.match, { type: 'next-round', seed: this.newSeed() })
           : applyAutoAction(room.match);
       if (result.ok) {
         this.commit(room, result.value);
