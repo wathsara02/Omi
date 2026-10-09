@@ -21,6 +21,8 @@ export interface RoundEnd {
   readonly matchResult: MatchResultClock;
   /** Server time the round result came on screen: after the last trick, if that was shown. */
   readonly resultShownAt: number;
+  /** Ends the playback now, for a player who does not want to wait for the match result. */
+  skip(): void;
 }
 
 interface Playback {
@@ -70,5 +72,7 @@ export const useRoundEnd = (game: GameSnapshot): RoundEnd => {
     stage: stage === 'done' ? null : stage,
     matchResult: { startedAt, deadline: startedAt + FINAL_RESULT_MS },
     resultShownAt: stage === null ? game.serverNow : startedAt,
+    skip: () =>
+      setPlayback((current) => (current === null ? current : { ...current, stage: 'done' })),
   };
 };

@@ -5,6 +5,7 @@ import { seatName, tokenScore } from '../state/selectors';
 import { Countdown } from '../ui/Countdown';
 import { ScoreBars } from '../ui/ScoreBars';
 import '../ui/ui.css';
+import { useFocusOnMount } from '../ui/useFocusOnMount';
 import './results.css';
 import { summariseRound } from './roundSummary';
 
@@ -19,6 +20,8 @@ interface RoundResultScreenProps {
    * (the last trick is shown first). The countdown bar is full at this moment.
    */
   shownAt?: number;
+  /** After the last round: go to the match result without waiting. */
+  onSkip?: () => void;
 }
 
 export function RoundResultScreen({
@@ -27,7 +30,9 @@ export function RoundResultScreen({
   clockOffset,
   matchResult = null,
   shownAt,
+  onSkip,
 }: RoundResultScreenProps): ReactElement | null {
+  const headline = useFocusOnMount<HTMLHeadingElement>();
   const { view } = game;
   if (view.lastRound === null) return null;
   const summary = summariseRound(view, view.lastRound);
@@ -46,7 +51,9 @@ export function RoundResultScreen({
       <main className={`result__body result__body--${summary.kind}`}>
         <div className="result__summary">
           <span className="eyebrow">Round {view.roundNumber}</span>
-          <h1 className="result__headline">{summary.headline}</h1>
+          <h1 className="result__headline" tabIndex={-1} ref={headline}>
+            {summary.headline}
+          </h1>
           <div className="result__row">
             <span className="result__tricks">{summary.tricks}</span>
             <span
@@ -76,6 +83,11 @@ export function RoundResultScreen({
             label={matchResult ? 'Match result in' : 'Next round in'}
             tone="calm"
           />
+        )}
+        {matchResult !== null && onSkip !== undefined && (
+          <button type="button" className="button button--primary" onClick={onSkip}>
+            See match result
+          </button>
         )}
       </footer>
     </div>

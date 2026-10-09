@@ -85,7 +85,7 @@ interface MatchViewProps {
 
 /** The table, or what follows a round: its last trick, its result, then the match result. */
 function MatchView({ room, snapshot, clockOffset, game }: MatchViewProps): ReactElement {
-  const { stage, matchResult, resultShownAt } = useRoundEnd(snapshot);
+  const { stage, matchResult, resultShownAt, skip } = useRoundEnd(snapshot);
   const { phase } = snapshot.view;
   const isOver = phase === 'match-over';
   const leave = (): void => void game.leaveRoom();
@@ -103,6 +103,7 @@ function MatchView({ room, snapshot, clockOffset, game }: MatchViewProps): React
         clockOffset={clockOffset}
         matchResult={isOver ? matchResult : null}
         shownAt={resultShownAt}
+        onSkip={skip}
       />
     );
   }

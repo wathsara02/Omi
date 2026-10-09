@@ -4,6 +4,7 @@ import type { ReactElement } from 'react';
 import { seatName } from '../state/selectors';
 import { Avatar } from '../ui/Avatar';
 import '../ui/ui.css';
+import { useFocusOnMount } from '../ui/useFocusOnMount';
 import './results.css';
 
 interface MatchEndScreenProps {
@@ -22,6 +23,7 @@ export function MatchEndScreen({
   onLobby,
   onLeave,
 }: MatchEndScreenProps): ReactElement {
+  const headline = useFocusOnMount<HTMLHeadingElement>();
   const { view } = game;
   const didWin = view.winner === view.team;
   const theirTeam = otherTeam(view.team);
@@ -56,7 +58,9 @@ export function MatchEndScreen({
     <div className="screen end">
       <header className="end__header">
         <span className="eyebrow">Match over · {view.roundNumber} rounds</span>
-        <h1 className="end__headline">{didWin ? 'You won the match' : 'You lost the match'}</h1>
+        <h1 className="end__headline" tabIndex={-1} ref={headline}>
+          {didWin ? 'You won the match' : 'You lost the match'}
+        </h1>
         <p
           className="end__score"
           aria-label={`${view.tokens[view.team]} to ${view.tokens[theirTeam]}`}

@@ -1,5 +1,5 @@
 import { seedFromInteger } from '@omi/engine';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { App } from '../src/App';
@@ -263,6 +263,18 @@ describe('when a round ends while the player is watching', () => {
     act(() => vi.advanceTimersByTime(FINAL_RESULT_MS));
 
     expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to lobby' })).toBeInTheDocument();
+  });
+
+  test('the match result can be reached at once from the last round’s result', () => {
+    endWith('match-over');
+    act(() => vi.advanceTimersByTime(TRICK_SHOWN_MS));
+
+    fireEvent.click(screen.getByRole('button', { name: 'See match result' }));
+
+    expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
+    // The timer that would have done the same must not undo anything later.
+    act(() => vi.advanceTimersByTime(FINAL_RESULT_MS));
     expect(screen.getByRole('button', { name: 'Back to lobby' })).toBeInTheDocument();
   });
 

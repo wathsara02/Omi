@@ -184,6 +184,66 @@ describe('RoundResultScreen', () => {
   });
 });
 
+describe('skipping the wait after the last round', () => {
+  const lastRound = (): GameSnapshot => {
+    const { state } = autoUntil(newMatch(), (each) => each.phase === 'match-over');
+    return snapshotFor(state, 0, { deadline: null });
+  };
+  const clock = { deadline: SERVER_NOW + 5000, startedAt: SERVER_NOW };
+
+  test('offers a button that goes straight to the match result', async () => {
+    const onSkip = vi.fn();
+    render(
+      <RoundResultScreen
+        room={roomSnapshot()}
+        game={lastRound()}
+        clockOffset={0}
+        matchResult={clock}
+        onSkip={onSkip}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'See match result' }));
+
+    expect(onSkip).toHaveBeenCalledOnce();
+  });
+
+  test('offers no such button between rounds', () => {
+    render(
+      <RoundResultScreen
+        room={roomSnapshot()}
+        game={scoredRound()}
+        clockOffset={0}
+        onSkip={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+});
+
+describe('announcing a result', () => {
+  test('the round result moves focus to its headline', () => {
+    render(<RoundResultScreen room={roomSnapshot()} game={scoredRound()} clockOffset={0} />);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+  });
+
+  test('the match result moves focus to its headline', () => {
+    const { state } = autoUntil(newMatch(), (each) => each.phase === 'match-over');
+    render(
+      <MatchEndScreen
+        room={roomSnapshot()}
+        game={snapshotFor(state, 0, { deadline: null })}
+        onLobby={vi.fn()}
+        onLeave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+  });
+});
+
 describe('MatchEndScreen', () => {
   const finished = (seat: 0 | 1 | 2 | 3): GameSnapshot => {
     const { state } = autoUntil(newMatch(), (each) => each.phase === 'match-over');

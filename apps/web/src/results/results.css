@@ -83,6 +83,12 @@
   font-weight: 800;
 }
 
+/* Focused only so that it is read out; it is not something to act on. */
+.result__headline:focus,
+.end__headline:focus {
+  outline: none;
+}
+
 /* --- match end */
 
 .end__header {
