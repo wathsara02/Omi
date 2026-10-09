@@ -106,15 +106,18 @@ The repo contains only `docs/omi-rules.md`, so there are no existing code patter
 
 ### Phase 5: E2E (medium)
 
-- Playwright runs four browser contexts against a server started with a fixed seed.
+**Built 2026-10-09** in `apps/e2e`; run with `pnpm e2e` (not part of `pnpm verify`).
+
+- Playwright runs four browser contexts (Chromium) against the production web build and a test server started with fixed seeds, on ports 3101 and 4173. Seat order is still random, so the specs act through whichever page has the turn.
+- The test server (`apps/e2e/server.ts`) is the only caller of the `newSeed` option. It keeps the real turn timer and round pause, but holds a seat for 5 seconds instead of 60 and loosens the connection limits.
 - Flows:
-  - create, join, ready, and a full round;
-  - a full match to 10 tokens;
-  - an illegal card is not playable;
+  - create, join by code, host start, and a full round;
+  - a full match to 10 tokens, then back to the lobby and a second match started by the host;
+  - a card that does not follow suit is not playable;
   - reload mid-trick and resume in the same seat;
-  - a closed tab leads to bot takeover and the match finishes.
-- A leak test records every WebSocket frame for one client and asserts that no other player's card ever appears, and that no second-batch card arrives before trump is called.
-- Screenshots are taken at 320, 768, 1024 and 1440.
+  - a closed tab leads to bot takeover, the match finishes, and the lobby afterwards has three players.
+- A leak test records every WebSocket frame for all four clients. For each client it asserts that no frame shows a card another player still holds, and that no second-batch card arrives before trump is called. The checker has its own tests with planted leaks.
+- Screenshots of home, lobby, trump call, trick play, round result and match end are attached to the report at 320, 768, 1024 and 1440, each with a check that the page does not scroll sideways. They are not compared against baselines.
 
 ## Risks
 
