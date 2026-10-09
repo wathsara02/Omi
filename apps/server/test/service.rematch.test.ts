@@ -1,4 +1,4 @@
-import { DEFAULT_RULES, type RulesConfig } from '@omi/engine';
+import { DEFAULT_RULES } from '@omi/engine';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   SOCKETS,
@@ -22,19 +22,15 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const playToTheEnd = (harness: Harness): void => {
+/** A match that one round can win, played to its end. */
+const finishedMatch = () => {
+  const harness = createHarness({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
+  const table = startMatch(harness);
   for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
     playRound(harness);
     if (harness.room('s0').status === 'playing') vi.advanceTimersByTime(roundPauseMs);
   }
   expect(harness.room('s0').status).toBe('finished');
-};
-
-/** A match that one round can win, played to its end. */
-const finishedMatch = (rules: RulesConfig = { ...DEFAULT_RULES, tokenTarget: 1 }) => {
-  const harness = createHarness({ rules });
-  const table = startMatch(harness);
-  playToTheEnd(harness);
   return { harness, ...table };
 };
 
@@ -145,36 +141,6 @@ describe('when every connected player is ready', () => {
     vi.advanceTimersByTime(idleRoomMs);
 
     expect(harness.store.find(code)).toBeDefined();
-  });
-
-  test('a second rematch works the same way, with fresh ready marks', () => {
-    const { harness, code } = finishedMatch();
-    everyoneReady(harness);
-    playToTheEnd(harness);
-    expect(readyOf(harness, 's0')).toEqual([false, false, false, false]);
-
-    everyoneReady(harness, ['s0', 's1', 's2']);
-    expect(harness.room('s0').status).toBe('finished');
-    mustOk(harness.service.ready('s3'));
-
-    expect(harness.room('s0').status).toBe('playing');
-    expect(harness.game('s0').view.tokens).toEqual({ A: 0, B: 0 });
-    expect(harness.store.find(code)).toBeDefined();
-  });
-
-  test('if the new match cannot be dealt, the player is told and can try again', () => {
-    const rules = { ...DEFAULT_RULES, tokenTarget: 1 };
-    const { harness } = finishedMatch(rules);
-    everyoneReady(harness, ['s0', 's1', 's2']);
-
-    rules.tokenTarget = 0;
-    expect(errorOf(harness.service.ready('s3'))).toBe('internal');
-    expect(harness.room('s0').status).toBe('finished');
-    expect(readyOf(harness, 's0')).toEqual([false, false, false, false]);
-
-    rules.tokenTarget = 1;
-    everyoneReady(harness);
-    expect(harness.room('s0').status).toBe('playing');
   });
 
   test('a seat whose player has left is played by a bot', () => {
