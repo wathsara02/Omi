@@ -250,9 +250,11 @@ export class GameService {
 
     const room = updatePlayer(seated.room, seated.player.id, { isReady: true });
     this.store.save(room);
-    if (isRematchAgreed(room)) this.startRematch(room);
-    else this.sendRoom(room);
-    return OK;
+    if (!isRematchAgreed(room)) {
+      this.sendRoom(room);
+      return OK;
+    }
+    return this.startRematch(room) ? OK : fail('internal');
   }
 
   /** The host removes a player from the lobby. Not possible once the match has started. */
@@ -336,13 +338,19 @@ export class GameService {
   /**
    * Deals a new match in a finished room: same seats and teams, a fresh seed.
    * A seat nobody is connected to goes to a bot, as an abandoned seat does.
+   * Returns false if the match could not be dealt; everyone must then ask again.
    */
-  private startRematch(finished: Room): void {
+  private startRematch(finished: Room): boolean {
     const match = createMatch(this.rules, newSeed());
     if (!match.ok) {
       this.logger.error({ room: logRef(finished.code), code: match.error.code }, 'no rematch');
-      this.sendRoom(finished);
-      return;
+      const asked = {
+        ...finished,
+        players: finished.players.map((player) => ({ ...player, isReady: false })),
+      };
+      this.store.save(asked);
+      this.sendRoom(asked);
+      return false;
     }
     const room = this.schedule({
       ...finished,
@@ -362,6 +370,7 @@ export class GameService {
     this.logger.info({ room: logRef(room.code) }, 'rematch started');
     this.sendRoom(room);
     this.sendGame(room, []);
+    return true;
   }
 
   private commit(room: Room, applied: Applied): void {
