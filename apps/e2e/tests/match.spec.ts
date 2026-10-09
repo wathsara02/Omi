@@ -48,10 +48,16 @@ test('a match is played to 10 tokens, then the room plays another', async ({ tab
     await expect(host.page.getByText('4 of 4')).toBeVisible();
     await expect(host.page.getByRole('button', { name: 'Start match' })).toBeEnabled();
 
-    for (const player of leavers) {
+    const [reloader, ...clickers] = leavers;
+    if (reloader === undefined) throw new Error('Not enough players');
+    for (const player of clickers) {
       await player.page.getByRole('button', { name: 'Back to lobby' }).click();
       await expect(player.page.getByText('Waiting for the host to start')).toBeVisible();
     }
+    // A reload on the match result is a dropped connection: the place is held.
+    await reloader.page.reload();
+    await expect(reloader.page.getByText('Waiting for the host to start')).toBeVisible();
+    await expect(host.page.getByText('4 of 4')).toBeVisible();
   });
 
   await test.step('the host starts the next match, from nil–nil', async () => {
