@@ -1,6 +1,12 @@
 import { RANKS, SUITS } from '@omi/engine';
 import { z } from 'zod';
 
+// Zod can compile object schemas with new Function, and tests for that when a
+// schema is built. The web page's Content-Security-Policy allows no eval: zod
+// would carry on without it, but the browser reports the attempt as a violation.
+// These payloads are a few fields each, so nothing is lost by never compiling.
+z.config({ jitless: true });
+
 export const PLAYER_NAME_MAX_LENGTH = 20;
 export const ROOM_CODE_LENGTH = 6;
 /** No 0, O, 1, I or L, which are easy to misread when a code is shared aloud. */

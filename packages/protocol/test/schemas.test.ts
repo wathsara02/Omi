@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { z } from 'zod';
 import {
   ROOM_CODE_ALPHABET,
   callTrumpSchema,
@@ -142,5 +143,13 @@ describe('playCardSchema', () => {
     ['a seat chosen by the client', { seq: 0, card: { suit: 'spades', rank: 'A' }, seat: 1 }],
   ])('rejects %s', (_label, payload) => {
     expect(playCardSchema.safeParse(payload).success).toBe(false);
+  });
+});
+
+describe('schema compilation', () => {
+  test('is off, so a page with a strict Content-Security-Policy sees no eval', () => {
+    expect(z.config().jitless).toBe(true);
+    expect(joinRoomSchema.safeParse({ code: 'ABC234', name: 'Asha' }).success).toBe(true);
+    expect(joinRoomSchema.safeParse({ code: 'ABC234' }).success).toBe(false);
   });
 });
