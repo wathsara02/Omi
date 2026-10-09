@@ -34,12 +34,26 @@ const contentSecurityPolicy = (serverUrl: string): Plugin => {
   };
 };
 
+/**
+ * Headers the page cannot give itself: `frame-ancestors` is ignored in a <meta>
+ * policy. The preview server sends them, and the end-to-end tests check that.
+ * A real host must be configured to send the same set.
+ */
+const SECURITY_HEADERS: Readonly<Record<string, string>> = {
+  'Content-Security-Policy': "frame-ancestors 'none'",
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
     plugins: [react(), contentSecurityPolicy(env.VITE_SERVER_URL ?? DEFAULT_SERVER_URL)],
     // Fonts inlined as data: URLs would be blocked by font-src 'self'.
     build: { assetsInlineLimit: 0 },
+    preview: { headers: { ...SECURITY_HEADERS } },
     test: {
       environment: 'jsdom',
       include: ['test/**/*.test.{ts,tsx}'],
