@@ -14,6 +14,11 @@ interface RoundResultScreenProps {
   clockOffset: number;
   /** Set when this round ended the match: the match result follows, not another round. */
   matchResult?: MatchResultClock | null;
+  /**
+   * Server time this screen appeared, when that was later than the state it shows
+   * (the last trick is shown first). The countdown bar is full at this moment.
+   */
+  shownAt?: number;
 }
 
 export function RoundResultScreen({
@@ -21,6 +26,7 @@ export function RoundResultScreen({
   game,
   clockOffset,
   matchResult = null,
+  shownAt,
 }: RoundResultScreenProps): ReactElement | null {
   const { view } = game;
   if (view.lastRound === null) return null;
@@ -31,7 +37,9 @@ export function RoundResultScreen({
   const dealsText = nextDealer === 'You' ? 'You deal' : `${nextDealer} deals`;
   const next: MatchResultClock | null =
     matchResult ??
-    (game.deadline === null ? null : { deadline: game.deadline, startedAt: game.serverNow });
+    (game.deadline === null
+      ? null
+      : { deadline: game.deadline, startedAt: shownAt ?? game.serverNow });
 
   return (
     <div className="screen result">

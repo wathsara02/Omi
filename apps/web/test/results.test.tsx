@@ -134,6 +134,24 @@ describe('RoundResultScreen', () => {
     expect(screen.getByText(/deals?$/)).toBeInTheDocument();
   });
 
+  test('the countdown bar starts full when the result appears, after the last trick was shown', () => {
+    const TRICK_SHOWN_MS = 1600;
+    const { state } = autoUntil(newMatch(), (each) => each.phase === 'round-scored');
+    const game = snapshotFor(state, 0, { deadline: SERVER_NOW + 5000 });
+    const shownAt = SERVER_NOW + TRICK_SHOWN_MS;
+    const { container } = render(
+      <RoundResultScreen
+        room={roomSnapshot()}
+        game={game}
+        clockOffset={shownAt - Date.now()}
+        shownAt={shownAt}
+      />,
+    );
+
+    const fill = container.querySelector<HTMLElement>('.countdown__fill');
+    expect(Number.parseFloat(fill?.style.width ?? '0')).toBeGreaterThan(99);
+  });
+
   test('says "You deal" when the deal passes to the player', () => {
     const game = scoredRound();
     const asCaller = snapshotFor(
