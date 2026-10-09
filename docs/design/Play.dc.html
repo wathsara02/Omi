@@ -12,6 +12,8 @@
 <style>
 body{margin:0}
 a{color:#0C5A4F}a:hover{color:#083C35}
+@keyframes turn-pulse{0%,100%{box-shadow:0 0 0 0 rgba(14,74,65,0.35)}50%{box-shadow:0 0 0 9px rgba(14,74,65,0)}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none !important}}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E4A41; color: #FFFFFF; font-family: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif">
@@ -39,7 +41,7 @@ a{color:#0C5A4F}a:hover{color:#083C35}
     </div>
   </header>
 
-  <main style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; justify-items: center; gap: 4px; padding: 8px 14px 18px">
+  <main style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; justify-items: center; gap: 4px; padding: 8px 14px 30px">
 
     <span></span>
     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
@@ -80,17 +82,23 @@ a{color:#0C5A4F}a:hover{color:#083C35}
     <span></span>
   </main>
 
-  <footer style="display: flex; flex-direction: column; gap: 24px; padding: 18px 16px 28px; background: #FFFFFF; color: #10201D; border-radius: 30px 30px 0 0">
-    <div style="display: flex; align-items: center; gap: 12px">
+  <footer style="position: relative; display: flex; flex-direction: column; gap: 22px; padding: 30px 16px 28px; background: #FFFFFF; color: #10201D; border-radius: 30px 30px 0 0">
+    <div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 999px; background: #FFB199; color: #10201D; border: 3px solid #10201D; box-shadow: 3px 3px 0 #10201D; font-size: 14px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap">Your turn</div>
+
+    <div style="display: flex; align-items: center; gap: 14px">
+      <div class="pulse" style="position: relative; width: 56px; height: 56px; flex: none; border-radius: 50%; animation: turn-pulse 1.6s ease-in-out infinite" aria-label="You, 9 seconds left">
+        <svg width="56" height="56" viewBox="0 0 56 56" style="position: absolute; inset: 0; transform: rotate(-90deg)" aria-hidden="true">
+          <circle cx="28" cy="28" r="25" fill="none" stroke="#E4ECEA" stroke-width="5"/>
+          <circle cx="28" cy="28" r="25" fill="none" stroke="#0E4A41" stroke-width="5" stroke-linecap="round" stroke-dasharray="94.2 157.1"/>
+        </svg>
+        <span style="position: absolute; inset: 7px; border-radius: 50%; background: #0E4A41; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800">9</span>
+      </div>
       <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
-        <h2 style="margin: 0; font-size: 20px; font-weight: 800; line-height: 1.1">Your turn</h2>
+        <span style="font-size: 17px; font-weight: 800; line-height: 1.1">You</span>
         <span style="font-size: 13px; font-weight: 500; color: #51635F">Follow hearts</span>
       </div>
-      <div style="width: 88px; height: 8px; border-radius: 999px; background: #E4ECEA; display: flex" aria-hidden="true">
-        <div style="width: 60%; border-radius: 999px; background: #D63A25"></div>
-      </div>
-      <span style="font-size: 15px; font-weight: 800; color: #B32C1A" aria-label="9 seconds left">0:09</span>
     </div>
+
     <div style="display: flex; justify-content: center; gap: 6px">
       <button aria-label="Ace of hearts, playable" style="width: 54px; height: 88px; box-sizing: border-box; padding: 6px; border-radius: 10px; background: #FFFFFF; border: 3px solid #10201D; box-shadow: 3px 3px 0 #10201D; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; color: #D63A25; transform: translateY(-12px); font: inherit; cursor: pointer">
         <span style="font-family: 'Gemunu Libre', 'Arial Narrow', sans-serif; font-size: 28px; font-weight: 800; line-height: 0.9">A</span>
