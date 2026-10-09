@@ -13,6 +13,7 @@ const MESSAGES: Readonly<Record<ErrorCode, string>> = {
   'not-in-room': 'You are not in a room.',
   'not-host': 'Only the host can start the match.',
   'not-enough-players': 'Four players are needed to start.',
+  'player-away': 'A player is away. Wait for them, or remove them.',
   'player-not-found': 'That player is not in the room.',
   'cannot-kick-self': 'You cannot remove yourself; leave the room instead.',
   'no-match': 'There is no match in progress.',

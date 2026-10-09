@@ -7,6 +7,7 @@ import { InMemoryRoomStore } from '../src/roomStore';
 export const TEST_TIMINGS: Timings = {
   turnMs: 15_000,
   holdMs: 60_000,
+  lobbyHoldMs: 30_000,
   roundPauseMs: 5_000,
   botDelayMs: 1_000,
   idleRoomMs: 600_000,

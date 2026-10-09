@@ -37,7 +37,9 @@ export const removePlayer = (room: Room, playerId: string): Room | null => {
 export const startProblem = (room: Room, playerId: string): ErrorCode | null => {
   if (room.status !== 'lobby') return 'match-in-progress';
   if (playerId !== room.hostId) return 'not-host';
-  return room.players.length < ROOM_SIZE ? 'not-enough-players' : null;
+  if (room.players.length < ROOM_SIZE) return 'not-enough-players';
+  // A match must not begin with a seat nobody is sitting in.
+  return room.players.some((player) => player.socketId === null) ? 'player-away' : null;
 };
 
 /** Seats players by position: the first player takes `order[0]`, and so on. */
@@ -58,14 +60,19 @@ export const updatePlayer = (
 });
 
 /**
- * The room after a match: a lobby again, under the same code. Players who are
- * not connected, bots included, are dropped; nobody keeps a seat. Returns null
- * if that leaves nobody.
+ * The room after a match: a lobby again, under the same code, and nobody keeps
+ * a seat. A player whose seat a bot had taken is dropped. One who is away but
+ * whose seat was still held stays, away, until `awayUntil`. Returns null if
+ * that leaves nobody.
  */
-export const backToLobby = (room: Room): Room | null => {
+export const backToLobby = (room: Room, awayUntil: number): Room | null => {
   const players = room.players
-    .filter((player) => player.socketId !== null)
-    .map((player) => ({ ...player, isBot: false, seat: null, holdDeadline: null }));
+    .filter((player) => !player.isBot)
+    .map((player) => ({
+      ...player,
+      seat: null,
+      holdDeadline: player.socketId === null ? awayUntil : null,
+    }));
   const [longestWaiting] = players;
   if (longestWaiting === undefined) return null;
 

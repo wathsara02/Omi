@@ -20,6 +20,7 @@ export type ErrorCode =
   | 'not-in-room'
   | 'not-host'
   | 'not-enough-players'
+  | 'player-away'
   | 'player-not-found'
   | 'cannot-kick-self'
   | 'no-match'

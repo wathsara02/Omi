@@ -9,6 +9,7 @@ import { silentLogger } from './harness';
 export const FAST_TIMINGS = {
   turnMs: 5000,
   holdMs: 250,
+  lobbyHoldMs: 250,
   roundPauseMs: 30,
   botDelayMs: 20,
   idleRoomMs: 60_000,

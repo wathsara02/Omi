@@ -87,7 +87,7 @@ describe('when a match ends', () => {
     expect(errorOf(harness.service.callTrump('s0', { seq, suit: 'hearts' }))).toBe('no-match');
   });
 
-  test('players who are not connected are removed, bots included', () => {
+  test('players whose seats bots ended up playing are removed', () => {
     const harness = createHarness({ rules: ONE_ROUND_MATCH });
     const { sessions } = startMatch(harness);
     harness.service.disconnect('s2');

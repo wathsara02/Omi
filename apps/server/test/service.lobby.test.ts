@@ -196,14 +196,19 @@ describe('leaving before the match starts', () => {
     expect(errorOf(createHarness().service.leave('s9'))).toBe('not-in-room');
   });
 
-  test('happens automatically when a socket disconnects in the lobby', () => {
+  test('is not what a dropped connection does: that place is held', () => {
     const harness = createHarness();
     const { code } = fillRoom(harness);
 
     harness.service.disconnect('s3');
 
-    expect(harness.store.find(code)?.players).toHaveLength(3);
-    expect(harness.room('s0').players.map((player) => player.name)).toEqual(['P0', 'P1', 'P2']);
+    expect(harness.store.find(code)?.players).toHaveLength(4);
+    expect(harness.room('s0').players.map((player) => player.isConnected)).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
   });
 
   test('ignores a disconnect from a socket that was never in a room', () => {

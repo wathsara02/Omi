@@ -92,11 +92,17 @@ The engine must follow this file, not general knowledge of the game.
 These are not part of traditional Omi; they cover situations a web game must handle. **[EDIT]** all values.
 
 - **Host:** the player who creates the room is the host. If the host leaves
-  before the match starts, the player who has waited longest becomes host.
+  before the match starts, or loses their place in the lobby (see below), the
+  player who has waited longest becomes host.
 - **Kick:** before the match starts, the host can remove any other player from
   the room. The seat opens for someone else. A removed player is not banned.
-- **Starting:** a match starts only when all 4 seats are filled and the host
-  starts it.
+- **Starting:** a match starts only when all 4 seats are filled, all 4 players
+  are connected, and the host starts it.
+- **Dropping out of the lobby:** a player whose connection drops in the lobby
+  keeps their place for 30 seconds and is shown as away. If they do not return
+  in that time they are removed and must join again with the code. Choosing to
+  leave gives the place up at once. While a player is away the host cannot
+  start the match, but can remove them.
 - **Player names:** 1 to 20 characters after trimming; duplicates are allowed.
   Control characters and invisible formatting characters are rejected.
 - **Team selection:** random.
@@ -118,8 +124,9 @@ These are not part of traditional Omi; they cover situations a web game must han
   match is gone.
 - **Next match:** when a match ends, the room becomes a lobby again under the
   same code, and each player sees the result until they go back to it. A player
-  who is not connected at that moment, including one whose seat a bot was
-  playing, is removed from the room and must join again with the code. From
+  whose seat a bot was playing is removed from the room and must join again
+  with the code. A player who is away but whose seat was still being held keeps
+  a place in the lobby, away, for a fresh 30 seconds. From
   there the lobby rules apply as before the first match: open seats can be
   filled by anyone with the code, the host can remove players, and the host
   starts the next match once 4 players are in. Teams are drawn at random again.

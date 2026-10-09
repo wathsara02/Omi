@@ -15,7 +15,7 @@ import {
   type Table,
 } from './harness';
 
-const { turnMs, holdMs, botDelayMs, roundPauseMs } = TEST_TIMINGS;
+const { turnMs, holdMs, lobbyHoldMs, botDelayMs, roundPauseMs } = TEST_TIMINGS;
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -91,7 +91,7 @@ describe('hold timers', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  test('are dropped when the match finishes, so nobody is turned into a bot afterwards', () => {
+  test('become lobby holds when the match finishes, so nobody is turned into a bot afterwards', () => {
     const { harness } = started({
       rules: { ...DEFAULT_RULES, tokenTarget: 1 },
       timings: { ...TEST_TIMINGS, holdMs: 60 * 60 * 1000 },
@@ -109,9 +109,15 @@ describe('hold timers', () => {
     }
 
     expect(harness.room(watcher).status).toBe('lobby');
-    // Only the idle timer of the lobby is left.
+    // The lobby's idle timer, and the absent player's place in it.
+    expect(vi.getTimerCount()).toBe(2);
+    expect(harness.room(watcher).players).toHaveLength(4);
+
+    vi.advanceTimersByTime(lobbyHoldMs);
+
     expect(vi.getTimerCount()).toBe(1);
     expect(harness.room(watcher).players).toHaveLength(3);
+    expect(harness.room(watcher).players.some((player) => player.isBot)).toBe(false);
   });
 });
 
@@ -155,17 +161,22 @@ describe('returning at other moments', () => {
     expect(harness.game('s0').view).toMatchObject({ phase: 'calling-trump', roundNumber: 2 });
   });
 
-  test('after the match has ended, the seat is gone and the room must be joined again', () => {
+  test('after the match has ended, is possible until the lobby hold runs out', () => {
     const { harness, table } = started({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
     for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
       playRound(harness);
       vi.advanceTimersByTime(roundPauseMs);
     }
     harness.service.disconnect('s3');
+    mustOk(resume(harness, table, 's3', 'back'));
+    expect(harness.room('back').players).toHaveLength(4);
 
+    harness.service.disconnect('back');
+    vi.advanceTimersByTime(lobbyHoldMs);
+
+    // Too late: the place is gone and the room must be joined again.
     expect(errorOf(resume(harness, table, 's3', 'new'))).toBe('session-invalid');
     mustOk(harness.service.joinRoom('new', { code: table.code, name: 'Back' }));
-
     expect(harness.room('new')).toMatchObject({ status: 'lobby' });
     expect(harness.room('new').players).toHaveLength(4);
   });

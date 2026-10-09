@@ -11,7 +11,7 @@ import {
   type Harness,
 } from './harness';
 
-const { holdMs, roundPauseMs } = TEST_TIMINGS;
+const { holdMs, lobbyHoldMs, roundPauseMs } = TEST_TIMINGS;
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -117,7 +117,7 @@ describe('the hold deadline of a disconnected player', () => {
     expect(player).toMatchObject({ isBot: true, holdDeadline: null });
   });
 
-  test('does not apply after the match: someone who leaves then is simply gone', () => {
+  test('after the match is the shorter hold of the lobby', () => {
     const harness = createHarness({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
     const table = startMatch(harness);
     for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
@@ -127,8 +127,9 @@ describe('the hold deadline of a disconnected player', () => {
 
     harness.service.disconnect('s3');
 
-    const ids = harness.room('s0').players.map((player) => player.id);
-    expect(ids).toHaveLength(3);
-    expect(ids).not.toContain(table.sessions[3]?.playerId);
+    expect(harness.room('s0').players).toHaveLength(4);
+    expect(holdOf(harness, 's0', table.sessions[3]?.playerId as string)).toBe(
+      Date.now() + lobbyHoldMs,
+    );
   });
 });

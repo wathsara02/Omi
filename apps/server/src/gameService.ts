@@ -60,6 +60,8 @@ export interface Timings {
   readonly turnMs: number;
   /** How long a disconnected player's seat is held before a bot takes over. */
   readonly holdMs: number;
+  /** How long a player who drops out of the lobby keeps their place. */
+  readonly lobbyHoldMs: number;
   /** Pause between a scored round and the next deal. */
   readonly roundPauseMs: number;
   /** How long a bot waits before acting. */
@@ -70,11 +72,13 @@ export interface Timings {
 
 const MS_PER_SECOND = 1000;
 const IDLE_ROOM_MINUTES = 10;
+const LOBBY_HOLD_SECONDS = 30;
 const SECONDS_PER_MINUTE = 60;
 
 export const DEFAULT_TIMINGS: Timings = {
   turnMs: DEFAULT_RULES.turnTimerSeconds * MS_PER_SECOND,
   holdMs: DEFAULT_RULES.reconnectHoldSeconds * MS_PER_SECOND,
+  lobbyHoldMs: LOBBY_HOLD_SECONDS * MS_PER_SECOND,
   roundPauseMs: 5 * MS_PER_SECOND,
   botDelayMs: 1 * MS_PER_SECOND,
   idleRoomMs: IDLE_ROOM_MINUTES * SECONDS_PER_MINUTE * MS_PER_SECOND,
@@ -261,6 +265,7 @@ export class GameService {
     if (!target || !remaining) return fail('player-not-found');
 
     this.store.save(remaining);
+    this.timers.clearHold(room.code, target.id);
     this.armIdle(room.code);
     this.logger.info({ room: logRef(room.code), player: target.id }, 'player kicked');
     this.release(target, 'kicked');
@@ -268,9 +273,16 @@ export class GameService {
     return OK;
   }
 
+  /** Leaving on purpose. In the lobby the place is given up at once; in a match it is a disconnect. */
   leave(socketId: string): Ack {
     if (!this.bindings.has(socketId)) return fail('not-in-room');
-    this.disconnect(socketId);
+    const seated = this.seatedAt(socketId);
+    if (seated?.room.status === 'lobby') {
+      this.bindings.delete(socketId);
+      this.removeFromLobby(seated.room, seated.player, 'player left');
+    } else {
+      this.disconnect(socketId);
+    }
     return OK;
   }
 
@@ -281,22 +293,19 @@ export class GameService {
     if (!seated) return;
     const { room, player } = seated;
 
-    // Before the match a player simply leaves; once seats are drawn the seat is kept.
-    const remaining =
-      room.status === 'lobby'
-        ? removePlayer(room, player.id)
-        : updatePlayer(room, player.id, {
-            socketId: null,
-            holdDeadline: Date.now() + this.timings.holdMs,
-          });
-    if (remaining === null || !hasConnectedHuman(remaining)) {
+    // The place is held either way: a seat in a match, a place in the lobby.
+    const holdMs = room.status === 'lobby' ? this.timings.lobbyHoldMs : this.timings.holdMs;
+    const remaining = updatePlayer(room, player.id, {
+      socketId: null,
+      holdDeadline: Date.now() + holdMs,
+    });
+    if (!hasConnectedHuman(remaining)) {
       this.removeRoom(room.code);
       return;
     }
     this.store.save(remaining);
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player disconnected');
-    if (remaining.status === 'playing') this.startHold(room.code, player.id);
-    else this.armIdle(room.code);
+    this.startHold(room.code, player.id, holdMs);
     this.sendRoom(remaining);
   }
 
@@ -335,13 +344,17 @@ export class GameService {
     this.sendGame(next, applied.events);
     this.timers.clearHolds(room.code);
     this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
-    const lobby = backToLobby(next);
+    const { lobbyHoldMs } = this.timings;
+    const lobby = backToLobby(next, Date.now() + lobbyHoldMs);
     if (lobby === null) {
       this.removeRoom(room.code);
       return;
     }
     this.store.save(lobby);
     this.armIdle(room.code);
+    for (const player of lobby.players) {
+      if (player.socketId === null) this.startHold(room.code, player.id, lobbyHoldMs);
+    }
     this.sendRoom(lobby);
   }
 
@@ -397,25 +410,40 @@ export class GameService {
     if (room && room.seq === expectedSeq) this.store.save(this.schedule(room));
   }
 
-  private startHold(code: string, playerId: string): void {
-    this.timers.setHold(code, playerId, this.timings.holdMs, () =>
-      this.onHoldExpired(code, playerId),
-    );
+  private startHold(code: string, playerId: string, holdMs: number): void {
+    this.timers.setHold(code, playerId, holdMs, () => this.onHoldExpired(code, playerId));
   }
 
   private onHoldExpired(code: string, playerId: string): void {
     // Runs from a timer: an error here must not take the whole process down.
     try {
-      this.handOverToBot(code, playerId);
+      const room = this.store.find(code);
+      const player = room && findPlayer(room, playerId);
+      if (!room || !player || player.socketId !== null) return;
+      if (room.status === 'lobby') this.removeFromLobby(room, player, 'place in lobby given up');
+      else this.handOverToBot(room, player);
     } catch (error: unknown) {
-      this.logger.error({ room: logRef(code), err: error }, 'bot takeover failed');
+      this.logger.error({ room: logRef(code), err: error }, 'ending a hold failed');
     }
   }
 
-  private handOverToBot(code: string, playerId: string): void {
-    const existing = this.store.find(code);
-    const player = existing && findPlayer(existing, playerId);
-    if (!existing || !player || player.socketId !== null) return;
+  /** Takes a player out of a lobby, and the room with them if nobody connected is left. */
+  private removeFromLobby(room: Room, player: Player, event: string): void {
+    this.timers.clearHold(room.code, player.id);
+    const remaining = removePlayer(room, player.id);
+    if (remaining === null || !hasConnectedHuman(remaining)) {
+      this.removeRoom(room.code);
+      return;
+    }
+    this.store.save(remaining);
+    this.armIdle(room.code);
+    this.logger.info({ room: logRef(room.code), player: player.id }, event);
+    this.sendRoom(remaining);
+  }
+
+  private handOverToBot(existing: Room, player: Player): void {
+    const { code } = existing;
+    const playerId = player.id;
 
     const asBot = updatePlayer(existing, playerId, { isBot: true, holdDeadline: null });
     const isBotsTurn = asBot.status === 'playing' && asBot.match?.turn === player.seat;

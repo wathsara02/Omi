@@ -31,6 +31,7 @@ const server = createOmiServer({
   timings: {
     turnMs: DEFAULT_RULES.turnTimerSeconds * MS_PER_SECOND,
     holdMs: HOLD_SECONDS * MS_PER_SECOND,
+    lobbyHoldMs: 30 * MS_PER_SECOND,
     roundPauseMs: 5 * MS_PER_SECOND,
     botDelayMs: 300,
     idleRoomMs: 600 * MS_PER_SECOND,
