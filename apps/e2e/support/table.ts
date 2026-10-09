@@ -67,6 +67,22 @@ export const hand = (page: Page) => page.getByRole('list', { name: 'Your hand' }
 export const trumpChoices = (page: Page) =>
   page.getByRole('group', { name: 'Choose trump' }).getByRole('button');
 export const playableCards = (page: Page) => hand(page).getByRole('button', { disabled: false });
+export const blockedCards = (page: Page) => hand(page).getByRole('button', { disabled: true });
+/** Cards lying on the table, each named with who led or played it. */
+export const tableCards = (page: Page) => page.getByRole('img', { name: / (led|played) by / });
+/** The accessible names of the cards in hand, in the order shown. */
+export const handNames = (page: Page): Promise<string[]> =>
+  hand(page)
+    .locator('[aria-label]')
+    .evaluateAll((cards) => cards.map((card) => card.getAttribute('aria-label') ?? ''));
+/** The player whose move it is, if they are among those listed. */
+export const playerOnTurn = async (players: readonly Player[]): Promise<Player | null> => {
+  for (const player of players) {
+    const choices = await trumpChoices(player.page).count();
+    if (choices > 0 || (await playableCards(player.page).count()) > 0) return player;
+  }
+  return null;
+};
 export const roundResult = (page: Page) => page.getByText('Next round', { exact: true });
 export const matchEnd = (page: Page) => page.getByRole('button', { name: 'Back to lobby' });
 
@@ -98,6 +114,14 @@ export const actIfOnTurn = async (page: Page): Promise<string | null> => {
   return label;
 };
 
+/** Makes the next move for whichever listed player is on turn; false if none is. */
+export const actOnce = async (players: readonly Player[]): Promise<boolean> => {
+  for (const player of players) {
+    if ((await actIfOnTurn(player.page)) !== null) return true;
+  }
+  return false;
+};
+
 interface PlayOptions {
   readonly timeoutMs?: number;
 }
@@ -116,11 +140,8 @@ export const playUntil = async (
   const deadline = Date.now() + timeoutMs;
   while (!(await isDone())) {
     if (Date.now() > deadline) throw new Error(`Play did not finish within ${timeoutMs} ms`);
-    let hasActed = false;
-    for (const player of players) {
-      hasActed = (await actIfOnTurn(player.page)) !== null || hasActed;
-    }
-    if (!hasActed) await watcher.page.waitForTimeout(SWEEP_PAUSE_MS);
+    // One move at a time, so `isDone` sees every state the table passes through.
+    if (!(await actOnce(players))) await watcher.page.waitForTimeout(SWEEP_PAUSE_MS);
   }
 };
 
