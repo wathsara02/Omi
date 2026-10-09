@@ -5,3 +5,6 @@ coverage/
 .env
 .env.*
 .claude/settings.local.json
+dist-e2e/
+test-results/
+playwright-report/
