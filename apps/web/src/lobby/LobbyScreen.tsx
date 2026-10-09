@@ -159,7 +159,9 @@ export function LobbyScreen({
               </button>
               {!isFull && <span className="lobby__needs">Needs 4 players</span>}
               {isFull && away && (
-                <span className="lobby__needs">{away.name} is away. Wait, or remove them.</span>
+                <span className="lobby__needs" role="status">
+                  {away.name} is away. Wait, or remove them.
+                </span>
               )}
             </>
           ) : (

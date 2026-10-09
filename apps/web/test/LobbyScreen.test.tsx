@@ -122,7 +122,8 @@ describe('LobbyScreen', () => {
       const { onStart, onKick, user } = setup(withNimalAway(), atServerNow);
 
       expect(screen.getByRole('button', { name: 'Start match' })).toBeDisabled();
-      expect(screen.getByText('Nimal is away. Wait, or remove them.')).toBeInTheDocument();
+      // Announced: the host may already be on this screen when the player drops.
+      expect(screen.getByRole('status')).toHaveTextContent('Nimal is away. Wait, or remove them.');
       await user.click(screen.getByRole('button', { name: 'Remove Nimal' }));
 
       expect(onStart).not.toHaveBeenCalled();
