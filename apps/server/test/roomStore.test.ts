@@ -9,7 +9,6 @@ const room = (code: string) =>
     tokenHash: Buffer.from('hash'),
     socketId: 'socket-a',
     isBot: false,
-    isReady: false,
     seat: null,
     holdDeadline: null,
   });

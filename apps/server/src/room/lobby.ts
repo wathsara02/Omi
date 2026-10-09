@@ -49,7 +49,7 @@ export const assignSeats = (room: Room, order: readonly Seat[]): Room => ({
 export const updatePlayer = (
   room: Room,
   playerId: string,
-  changes: Partial<Pick<Player, 'socketId' | 'isBot' | 'isReady' | 'holdDeadline'>>,
+  changes: Partial<Pick<Player, 'socketId' | 'isBot' | 'holdDeadline'>>,
 ): Room => ({
   ...room,
   players: room.players.map((player) =>
@@ -66,16 +66,6 @@ export const findPlayerBySocket = (room: Room, socketId: string): Player | undef
 export const findPlayerBySeat = (room: Room, seat: Seat): Player | undefined =>
   room.players.find((player) => player.seat === seat);
 
-/** True when a finished room's connected players have all asked for another match. */
-export const isRematchAgreed = (room: Room): boolean => {
-  const connected = room.players.filter((player) => player.socketId !== null);
-  return (
-    room.status === 'finished' &&
-    connected.length > 0 &&
-    connected.every((player) => player.isReady)
-  );
-};
-
 export const hasConnectedHuman = (room: Room): boolean =>
   room.players.some((player) => player.socketId !== null);
 
@@ -90,7 +80,6 @@ export const toRoomSnapshot = (room: Room, youId: string, serverNow: number): Ro
     isHost: player.id === room.hostId,
     isConnected: player.socketId !== null,
     isBot: player.isBot,
-    isReady: player.isReady,
     seat: player.seat,
     holdDeadline: player.holdDeadline,
   })),

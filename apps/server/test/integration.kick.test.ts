@@ -69,23 +69,3 @@ describe('an idle lobby over real sockets', () => {
     });
   });
 });
-
-describe('asking for another match over real sockets', () => {
-  test('is refused while there is no finished match', async () => {
-    const { guest } = await lobbyOfTwo(await boot());
-
-    expect(await guest.request('room:ready')).toMatchObject({
-      ok: false,
-      error: { code: 'match-not-over' },
-    });
-  });
-
-  test('takes no payload', async () => {
-    const { guest } = await lobbyOfTwo(await boot());
-
-    expect(await guest.request('room:ready', { seat: 0 })).toMatchObject({
-      ok: false,
-      error: { code: 'invalid-payload' },
-    });
-  });
-});
