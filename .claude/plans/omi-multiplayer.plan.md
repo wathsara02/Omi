@@ -113,7 +113,7 @@ The repo contains only `docs/omi-rules.md`, so there are no existing code patter
 - Flows:
   - create, join by code, host start, and a full round;
   - a full match to 10 tokens, then back to the lobby and a second match started by the host;
-  - a card that does not follow suit is not playable;
+  - a card that does not follow suit is disabled in the hand;
   - reload mid-trick and resume in the same seat;
   - a closed tab leads to bot takeover, the match finishes, and the lobby afterwards has three players.
 - A leak test records every WebSocket frame for all four clients. For each client it asserts that no frame shows a card another player still holds, and that no second-batch card arrives before trump is called. The checker has its own tests with planted leaks.
@@ -157,4 +157,4 @@ To be written into `docs/omi-rules.md` before the engine starts. Proposed defaul
 - [ ] Engine tests pass at 95%+ coverage
 - [ ] Server integration tests pass, including the hand-leak assertion
 - [x] UI design approved before Phase 4 starts (2026-10-06)
-- [ ] E2E suite passes, including reconnect and bot takeover
+- [x] E2E suite passes, including reconnect and bot takeover (2026-10-09)

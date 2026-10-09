@@ -2,7 +2,7 @@ import { captureScreen } from '../support/screens';
 import {
   expect,
   playUntil,
-  playerOnTurn,
+  awaitPlayerOnTurn,
   roundResult,
   startMatch,
   tableCards,
@@ -31,21 +31,19 @@ test('every screen up to the round result fits at each width', async ({
 
   await test.step('trump call', async () => {
     await startMatch(table);
-    const caller = await playerOnTurn(players);
-    if (caller === null) throw new Error('Nobody is calling trump');
+    const caller = await awaitPlayerOnTurn(players);
     await expect(trumpChoices(caller.page)).toHaveCount(4);
     await captureScreen(caller.page, 'trump-call', testInfo);
   });
 
   await test.step('trick play', async () => {
     await playUntil(players, async () => (await tableCards(host.page).count()) === 2);
-    const onTurn = await playerOnTurn(players);
-    if (onTurn === null) throw new Error('Nobody is on turn');
+    const onTurn = await awaitPlayerOnTurn(players);
     await captureScreen(onTurn.page, 'trick-play', testInfo);
   });
 
   await test.step('round result', async () => {
     await playUntil(players, () => roundResult(host.page).isVisible());
-    await captureScreen(host.page, 'round-result', testInfo);
+    await captureScreen(host.page, 'round-result', testInfo, roundResult(host.page));
   });
 });

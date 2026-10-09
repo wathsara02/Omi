@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 /** The widths the design is checked at, each with a height typical of such a screen. */
 export const VIEWPORTS = [
@@ -11,12 +11,14 @@ export const VIEWPORTS = [
 /**
  * Photographs the page as it stands at every width, into the test report, and
  * fails if the page scrolls sideways at any of them. The page is left at the
- * size it had.
+ * size it had. `stillShowing` is for a screen that goes away by itself: it must
+ * still be up after each photograph, or the picture may be of the next screen.
  */
 export const captureScreen = async (
   page: Page,
   name: string,
   testInfo: TestInfo,
+  stillShowing?: Locator,
 ): Promise<void> => {
   const original = page.viewportSize();
   for (const viewport of VIEWPORTS) {
@@ -34,6 +36,9 @@ export const captureScreen = async (
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
+    if (stillShowing !== undefined) {
+      expect(await stillShowing.isVisible(), `${name} was still showing`).toBe(true);
+    }
   }
   if (original !== null) await page.setViewportSize(original);
 };

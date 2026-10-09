@@ -18,7 +18,8 @@ test('a closed tab is taken over by a bot and the match finishes', async ({ tabl
 
   await test.step('the seat is held, then a bot plays it', async () => {
     await expect(host.page.getByText(/^away/)).toBeVisible();
-    await expect(host.page.getByText('bot', { exact: true })).toBeVisible({
+    const leaverSeat = host.page.getByRole('group', { name: new RegExp(`^${leaver.name}`) });
+    await expect(leaverSeat.getByText('bot', { exact: true })).toBeVisible({
       timeout: TAKEOVER_TIMEOUT_MS,
     });
     await expect(host.page.getByText(/^away/)).toHaveCount(0);

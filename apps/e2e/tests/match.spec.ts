@@ -9,21 +9,21 @@ test('a match is played to 10 tokens, then the room plays another', async ({ tab
   if (stayer === undefined) throw new Error('Not enough players');
   await startMatch(table);
 
-  let sawFinalRoundResult = false;
-  await playUntil(
-    players,
-    async () => {
-      // The last round's result is shown for a few seconds before the match result.
-      if (await host.page.getByText('The match result is next').isVisible()) {
-        sawFinalRoundResult = true;
-      }
-      return matchEnd(host.page).isVisible();
-    },
-    { timeoutMs: MATCH_TIMEOUT_MS },
-  );
+  // The last round's result is shown for a few seconds before the match result.
+  // The page itself is watched for it, so a slow moment in this loop cannot miss it.
+  const sawFinalRoundResult = host.page
+    .getByText('The match result is next')
+    .waitFor({ state: 'visible', timeout: MATCH_TIMEOUT_MS })
+    .then(
+      () => true,
+      () => false,
+    );
+  await playUntil(players, () => matchEnd(host.page).isVisible(), {
+    timeoutMs: MATCH_TIMEOUT_MS,
+  });
 
   await test.step('everyone sees the match result, two as winners', async () => {
-    expect(sawFinalRoundResult).toBe(true);
+    expect(await sawFinalRoundResult).toBe(true);
     let winners = 0;
     for (const player of players) {
       await expect(matchEnd(player.page)).toBeVisible();

@@ -1,6 +1,7 @@
 import {
   PLAYER_NAMES,
   expect,
+  expectAllToSee,
   hand,
   playUntil,
   roundResult,
@@ -35,10 +36,8 @@ test('four players meet in a room and play a round', async ({ table }) => {
   await test.step('the round is played to its result', async () => {
     await playUntil(players, () => roundResult(host.page).isVisible());
 
-    for (const player of players) {
-      await expect(roundResult(player.page)).toBeVisible();
-      await expect(player.page.getByText('Round 1', { exact: true })).toBeVisible();
-    }
+    await expectAllToSee(players, roundResult);
+    await expectAllToSee(players, (page) => page.getByText('Round 1', { exact: true }));
   });
 
   await test.step('the next round is dealt', async () => {

@@ -16,6 +16,12 @@ test('no frame ever shows a player a card they should not see', async ({ browser
   await playUntil(players, () =>
     host.page.getByText(`Round ${ROUNDS_WATCHED + 1} · no trump yet`).isVisible(),
   );
+  // Everyone must have received the last state, or it cannot be cross-checked.
+  await Promise.all(
+    players.map((player) =>
+      expect(player.page.getByText(`Round ${ROUNDS_WATCHED + 1} · no trump yet`)).toBeVisible(),
+    ),
+  );
   await closeTable(table);
 
   for (const player of players) {
@@ -29,7 +35,7 @@ test('no frame ever shows a player a card they should not see', async ({ browser
     expect(mine.pollingRequests, `${player.name}: long-polling requests`).toEqual([]);
     const states = gameStatesIn(mine.frames);
     // Two rounds are 2 trump calls and 64 card plays, each a new state.
-    expect(states.length, `${player.name}: game states received`).toBeGreaterThan(64);
+    expect(states.length, `${player.name}: game states received`).toBeGreaterThanOrEqual(66);
     expect(
       states.some((state) => state.view.hand.length === 8),
       `${player.name}: was dealt a full hand`,
@@ -81,6 +87,7 @@ test.describe('the leak checker', () => {
     const mine = [calling(1, MINE, { next: SECOND[0] }), playing(2, [...MINE, ...SECOND])];
 
     expect(findLeaks(mine, [theirFrames])).toEqual([
+      'state 1: 7-clubs appears outside the hand and the tricks',
       'state 2: 7-clubs of the second batch was sent before trump was called',
     ]);
   });
@@ -103,6 +110,41 @@ test.describe('the leak checker', () => {
       'room:state carries cards: A-hearts K-hearts Q-hearts J-hearts',
       'an acknowledgement has a "rng" field',
     ]);
+  });
+
+  test('reports a card nobody holds yet that sits outside the hand and the tricks', () => {
+    const mine = [calling(1, MINE, { stock: [card('7', 'diamonds')] })];
+
+    expect(findLeaks(mine, [theirFrames])).toEqual([
+      'game:state has a "stock" field',
+      'state 1: 7-diamonds appears outside the hand and the tricks',
+    ]);
+  });
+
+  test('allows a played card to be named in an event as well as on the table', () => {
+    const played = { seat: 1, card: SECOND[0] };
+    const mine = [
+      calling(1, MINE),
+      `42${JSON.stringify([
+        'game:state',
+        {
+          seq: 2,
+          events: [{ type: 'card-played', ...played }],
+          view: {
+            phase: 'playing',
+            trump: 'hearts',
+            hand: MINE,
+            currentTrick: { plays: [played] },
+          },
+        },
+      ])}`,
+    ];
+
+    expect(findLeaks(mine, [theirFrames])).toEqual([]);
+  });
+
+  test('refuses a frame it cannot read', () => {
+    expect(() => findLeaks(['45-["game:state",{}]'], [theirFrames])).toThrow('Unreadable frame');
   });
 
   test('reports a state it has no truth for, rather than passing it', () => {

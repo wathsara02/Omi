@@ -18,7 +18,9 @@ const suitOf = (cardName: string): string => {
   return suit;
 };
 
-test('a card that does not follow suit cannot be played', async ({ table }) => {
+// The server's own refusal of such a card is covered by the server's tests;
+// this is about what the player is offered.
+test('a card that does not follow suit is disabled in the hand', async ({ table }) => {
   const { players } = table;
   await startMatch(table);
 

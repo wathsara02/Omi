@@ -38,9 +38,16 @@ const PACKET = /^4[23]\d*(\[[\s\S]*)$/;
 const FORBIDDEN_KEYS = ['hands', 'stock', 'deck', 'rng', 'seed'] as const;
 const FIRST_BATCH = 4;
 
+// Engine.IO's own frames (open, ping, pong) and the Socket.IO connect reply.
+const TRANSPORT_FRAME = /^(0|2|3|40)/;
+
 const parsePacket = (frame: string): Packet | null => {
   const json = PACKET.exec(frame)?.[1];
-  if (json === undefined) return null;
+  if (json === undefined) {
+    // A frame this cannot read might carry anything, so it is an error, not a pass.
+    if (!TRANSPORT_FRAME.test(frame)) throw new Error(`Unreadable frame: ${frame.slice(0, 40)}`);
+    return null;
+  }
   const parsed: unknown = JSON.parse(json);
   if (!Array.isArray(parsed)) return null;
   const isEvent = frame.startsWith('42') && typeof parsed[0] === 'string';
@@ -115,7 +122,23 @@ export const findLeaks = (
       continue;
     }
 
-    const { seq, view } = packet.body as GameSnapshot;
+    const snapshot = packet.body as GameSnapshot;
+    const { seq, view } = snapshot;
+    // Cards may be in the hand or on the table. Anywhere else (an event, say)
+    // they must be cards that are on the table, which everyone can see.
+    const onTable = new Set(cardsIn([view.currentTrick, view.previousTrick]).map(cardKey));
+    const elsewhere = cardsIn({
+      ...snapshot,
+      view: { ...view, hand: [], legalMoves: [], currentTrick: null, previousTrick: null },
+    }).map(cardKey);
+    for (const card of elsewhere.filter((each) => !onTable.has(each))) {
+      problems.push(`state ${seq}: ${card} appears outside the hand and the tricks`);
+    }
+    for (const card of cardsIn(view.legalMoves).map(cardKey)) {
+      if (!view.hand.some((held) => cardKey(held) === card)) {
+        problems.push(`state ${seq}: ${card} is a legal move but not in hand`);
+      }
+    }
     const known = truth.get(seq);
     if (known === undefined || known.reports !== others.length) {
       problems.push(`state ${seq}: cannot be checked, not every other player received it`);

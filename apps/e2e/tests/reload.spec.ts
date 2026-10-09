@@ -3,7 +3,8 @@ import {
   hand,
   handNames,
   playUntil,
-  playerOnTurn,
+  awaitPlayerOnTurn,
+  expectAllToSee,
   roundResult,
   startMatch,
   tableCards,
@@ -16,8 +17,7 @@ test('a player who reloads mid-trick is back in the same seat', async ({ table }
 
   // Two cards down: a trick is under way and someone is waited on.
   await playUntil(players, async () => (await tableCards(host.page).count()) === 2);
-  const reloader = await playerOnTurn(players);
-  if (reloader === null) throw new Error('Nobody is on turn');
+  const reloader = await awaitPlayerOnTurn(players);
   const { page } = reloader;
   const handBefore = await handNames(page);
   const tableBefore = await tableCards(page).evaluateAll((cards) =>
@@ -48,6 +48,6 @@ test('a player who reloads mid-trick is back in the same seat', async ({ table }
 
   await test.step('the round carries on to its result', async () => {
     await playUntil(players, () => roundResult(host.page).isVisible());
-    for (const player of players) await expect(roundResult(player.page)).toBeVisible();
+    await expectAllToSee(players, roundResult);
   });
 });

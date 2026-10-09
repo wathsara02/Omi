@@ -3,6 +3,7 @@ import {
   expect,
   type Browser,
   type BrowserContext,
+  type Locator,
   type Page,
 } from '@playwright/test';
 
@@ -24,6 +25,7 @@ export const PLAYER_NAMES = ['Asha', 'Bimal', 'Chathu', 'Dilan'] as const;
 const ROOM_URL = /\/r\/([A-Z0-9]+)$/;
 const SWEEP_PAUSE_MS = 100;
 const DEFAULT_PLAY_TIMEOUT_MS = 120_000;
+const ON_TURN_TIMEOUT_MS = 10_000;
 
 /** A person in their own browser profile, on the home screen. */
 export const openPlayer = async (browser: Browser, name: string): Promise<Player> => {
@@ -89,6 +91,25 @@ export const playerOnTurn = async (players: readonly Player[]): Promise<Player |
     if (choices > 0 || (await playableCards(player.page).count()) > 0) return player;
   }
   return null;
+};
+/** As `playerOnTurn`, but waits for that player's page to catch up with the table. */
+export const awaitPlayerOnTurn = async (players: readonly Player[]): Promise<Player> => {
+  const [watcher] = players;
+  if (watcher === undefined) throw new Error('No players');
+  const deadline = Date.now() + ON_TURN_TIMEOUT_MS;
+  for (;;) {
+    const found = await playerOnTurn(players);
+    if (found !== null) return found;
+    if (Date.now() > deadline) throw new Error('Nobody is on turn');
+    await watcher.page.waitForTimeout(SWEEP_PAUSE_MS);
+  }
+};
+/** Checks all the pages at once; some screens are only up for a few seconds. */
+export const expectAllToSee = async (
+  players: readonly Player[],
+  locate: (page: Page) => Locator,
+): Promise<void> => {
+  await Promise.all(players.map((player) => expect(locate(player.page)).toBeVisible()));
 };
 export const roundResult = (page: Page) => page.getByText('Next round', { exact: true });
 export const matchEnd = (page: Page) => page.getByRole('button', { name: 'Back to lobby' });
