@@ -153,8 +153,8 @@ To be written into `docs/omi-rules.md` before the engine starts. Proposed defaul
 
 ## Acceptance
 
-- [ ] Rules gaps resolved in `docs/omi-rules.md`
-- [ ] Engine tests pass at 95%+ coverage
-- [ ] Server integration tests pass, including the hand-leak assertion
+- [x] Rules gaps resolved in `docs/omi-rules.md`
+- [x] Engine tests pass at 95%+ coverage (100% on 2026-10-09)
+- [x] Server integration tests pass, including the hand-leak assertion
 - [x] UI design approved before Phase 4 starts (2026-10-06)
 - [x] E2E suite passes, including reconnect and bot takeover (2026-10-09)
