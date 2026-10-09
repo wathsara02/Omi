@@ -64,6 +64,7 @@ function RoomView({ game, code }: { game: GameController; code: string }): React
     return (
       <LobbyScreen
         room={room}
+        clockOffset={state.clockOffset}
         onStart={game.startMatch}
         onKick={game.kick}
         onLeave={() => void game.leaveRoom()}

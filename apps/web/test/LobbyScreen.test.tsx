@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { LobbyScreen } from '../src/lobby/LobbyScreen';
 import { failed, ok } from './fakeSocket';
-import { lobbySnapshot, withPlayer } from './fixtures';
+import { SERVER_NOW, lobbySnapshot, withPlayer } from './fixtures';
 
 const setup = (room = lobbySnapshot(3), props: Partial<Parameters<typeof LobbyScreen>[0]> = {}) => {
   const onStart = vi.fn(async () => ok(null));
@@ -98,6 +98,48 @@ describe('LobbyScreen', () => {
 
       expect(screen.getByText('Host')).toBeInTheDocument();
       expect(screen.getByText('You')).toBeInTheDocument();
+    });
+  });
+
+  describe('when a player’s connection has dropped', () => {
+    /** Nimal (p2) is away with 24 seconds of their place left. */
+    const withNimalAway = (youId = 'p0') =>
+      withPlayer(lobbySnapshot(4, youId), 'p2', {
+        isConnected: false,
+        holdDeadline: SERVER_NOW + 24_000,
+      });
+    const atServerNow = { clockOffset: SERVER_NOW - Date.now() };
+
+    test('shows them as away, with the time their place is held', () => {
+      setup(withNimalAway(), atServerNow);
+
+      const row = screen.getByText('Nimal').closest('li') as HTMLElement;
+      expect(within(row).getByText(/^away 0:2\d$/)).toBeInTheDocument();
+      expect(screen.getByText('4 of 4')).toBeInTheDocument();
+    });
+
+    test('the host cannot start, is told why, and can still remove them', async () => {
+      const { onStart, onKick, user } = setup(withNimalAway(), atServerNow);
+
+      expect(screen.getByRole('button', { name: 'Start match' })).toBeDisabled();
+      expect(screen.getByText('Nimal is away. Wait, or remove them.')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Remove Nimal' }));
+
+      expect(onStart).not.toHaveBeenCalled();
+      expect(onKick).toHaveBeenCalledWith('p2');
+    });
+
+    test('a guest is told who is being waited for', () => {
+      setup(withNimalAway('p1'), atServerNow);
+
+      expect(screen.getByRole('status')).toHaveTextContent('Waiting for Nimal to reconnect');
+    });
+
+    test('nobody is shown as away when everyone is connected', () => {
+      setup(lobbySnapshot(4));
+
+      expect(screen.queryByText(/^away/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Start match' })).toBeEnabled();
     });
   });
 

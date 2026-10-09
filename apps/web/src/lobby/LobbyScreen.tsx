@@ -3,10 +3,13 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { roomPath } from '../state/route';
 import { Avatar } from '../ui/Avatar';
 import '../ui/ui.css';
+import { AwayPill } from './AwayPill';
 import './lobby.css';
 
 interface LobbyScreenProps {
   room: RoomSnapshot;
+  /** Server clock minus this device's clock, for the countdown on an away player. */
+  clockOffset?: number;
   onStart: () => Promise<Ack>;
   onKick: (playerId: string) => Promise<Ack>;
   onLeave: () => void;
@@ -18,7 +21,13 @@ const COPIED_NOTE_MS = 2000;
 const seatsLeftText = (count: number): string =>
   count === 1 ? 'Waiting for one more player' : `Waiting for ${count} more players`;
 
-export function LobbyScreen({ room, onStart, onKick, onLeave }: LobbyScreenProps): ReactElement {
+export function LobbyScreen({
+  room,
+  clockOffset = 0,
+  onStart,
+  onKick,
+  onLeave,
+}: LobbyScreenProps): ReactElement {
   const [hasCopied, setHasCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -26,6 +35,9 @@ export function LobbyScreen({ room, onStart, onKick, onLeave }: LobbyScreenProps
   const isHost = me?.isHost ?? false;
   const seatsLeft = ROOM_SIZE - room.players.length;
   const isFull = seatsLeft <= 0;
+  // A match cannot start with a seat nobody is sitting in; the server refuses too.
+  const away = room.players.find((player) => !player.isConnected);
+  const canStart = isFull && away === undefined;
 
   useEffect(() => {
     if (!hasCopied) return undefined;
@@ -59,6 +71,10 @@ export function LobbyScreen({ room, onStart, onKick, onLeave }: LobbyScreenProps
     return player.isHost ? 'Host' : null;
   };
 
+  let guestStatus = 'The host starts when four players are in';
+  if (away) guestStatus = `Waiting for ${away.name} to reconnect`;
+  else if (isFull) guestStatus = 'Waiting for the host to start';
+
   return (
     <div className="screen screen--wide lobby">
       <header className="lobby__header">
@@ -86,11 +102,17 @@ export function LobbyScreen({ room, onStart, onKick, onLeave }: LobbyScreenProps
           {room.players.map((player) => {
             const detail = describe(player);
             return (
-              <li key={player.id} className="lobby__player">
+              <li
+                key={player.id}
+                className={`lobby__player${player.isConnected ? '' : ' lobby__player--away'}`}
+              >
                 <Avatar name={player.name} tone={player.id === room.youId ? 'solid' : 'outlined'} />
                 <div className="lobby__player-text">
                   <span className="lobby__player-name">{player.name}</span>
                   {detail && <span className="lobby__player-detail">{detail}</span>}
+                  {!player.isConnected && (
+                    <AwayPill holdDeadline={player.holdDeadline} clockOffset={clockOffset} />
+                  )}
                 </div>
                 {isHost && player.id !== room.youId && (
                   <button
@@ -130,18 +152,19 @@ export function LobbyScreen({ room, onStart, onKick, onLeave }: LobbyScreenProps
               <button
                 type="button"
                 className="button button--primary"
-                disabled={!isFull || isStarting}
+                disabled={!canStart || isStarting}
                 onClick={() => void start()}
               >
                 {isStarting ? 'Starting…' : 'Start match'}
               </button>
               {!isFull && <span className="lobby__needs">Needs 4 players</span>}
+              {isFull && away && (
+                <span className="lobby__needs">{away.name} is away. Wait, or remove them.</span>
+              )}
             </>
           ) : (
             <p className="lobby__needs" role="status">
-              {isFull
-                ? 'Waiting for the host to start'
-                : 'The host starts when four players are in'}
+              {guestStatus}
             </p>
           )}
           <button type="button" className="button button--quiet" onClick={onLeave}>

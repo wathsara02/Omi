@@ -102,6 +102,21 @@
   color: var(--color-muted);
 }
 
+.lobby__player--away .lobby__player-name {
+  color: var(--color-muted);
+}
+
+.lobby__away {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-surface);
+  color: var(--color-danger);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .lobby__note {
   padding: 0 var(--space-1);
   font-size: 13px;
