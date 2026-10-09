@@ -54,4 +54,18 @@ describe('the seed source', () => {
   test('left out, each match is dealt from fresh random bits', () => {
     expect(handsBySeat()).not.toEqual(handsBySeat());
   });
+
+  test('left out, the match and each later round draw from the cryptographic generator', () => {
+    const drawn = vi.spyOn(globalThis.crypto, 'getRandomValues');
+    const harness = createHarness();
+    startMatch(harness);
+    expect(drawn).toHaveBeenCalledTimes(1);
+
+    playRound(harness);
+    vi.advanceTimersByTime(TEST_TIMINGS.roundPauseMs);
+
+    expect(harness.game('s0').view.roundNumber).toBe(2);
+    expect(drawn).toHaveBeenCalledTimes(2);
+    drawn.mockRestore();
+  });
 });
