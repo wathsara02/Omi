@@ -1,7 +1,7 @@
 import type { RoomPlayer } from '@omi/protocol';
 import type { ReactElement } from 'react';
 import { formatClock, useCountdown } from '../state/clock';
-import { Avatar } from '../ui/Avatar';
+import { TurnAvatar, type TurnClock } from './TurnAvatar';
 
 interface SeatBadgeProps {
   player: RoomPlayer | undefined;
@@ -10,6 +10,8 @@ interface SeatBadgeProps {
   isPartner?: boolean;
   isDealer?: boolean;
   isOnTurn?: boolean;
+  /** The turn countdown, when this seat is on turn and has one. */
+  turnClock?: TurnClock | null;
   /** row: avatar beside the text (partner, at the top). stack: avatar above it (sides). */
   layout?: 'row' | 'stack';
 }
@@ -24,6 +26,7 @@ export function SeatBadge({
   isPartner = false,
   isDealer = false,
   isOnTurn = false,
+  turnClock = null,
   layout = 'stack',
 }: SeatBadgeProps): ReactElement {
   const holdLeft = useCountdown(player?.holdDeadline ?? null, clockOffset);
@@ -36,6 +39,7 @@ export function SeatBadge({
   if (player?.isBot) {
     presence = <span className="pill">bot</span>;
   } else if (isAway) {
+    // The hold is a different countdown from the turn, so it stays a label, not a ring.
     presence = (
       <span className="pill pill--alert">
         {holdLeft === null ? 'away' : `away ${formatClock(holdLeft)}`}
@@ -45,11 +49,18 @@ export function SeatBadge({
 
   return (
     <div
-      className={`seat seat--${layout}${isOnTurn ? ' seat--on-turn' : ''}`}
+      className={`seat seat--${layout}`}
       aria-label={`${name}${isOnTurn ? ', to play' : ''}`}
       role="group"
     >
-      <Avatar name={name} tone={isAway ? 'away' : 'plain'} />
+      <TurnAvatar
+        name={name}
+        tone="table"
+        isOnTurn={isOnTurn}
+        clock={isOnTurn ? turnClock : null}
+        clockOffset={clockOffset}
+        isAway={isAway}
+      />
       <div className="seat__text">
         <span className="seat__name">{name}</span>
         <span className="seat__detail">{detail}</span>

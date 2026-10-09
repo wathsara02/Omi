@@ -129,7 +129,7 @@ describe('the player’s turn', () => {
 
     expect(screen.getByRole('heading', { name: 'Your turn' })).toBeInTheDocument();
     expect(screen.getByText('Your card')).toBeInTheDocument();
-    expect(screen.getByRole('timer')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Turn timer' })).toBeInTheDocument();
   });
 
   test('shows the server’s reason when a move is refused', async () => {

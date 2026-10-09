@@ -19,6 +19,8 @@
 
   --color-suit-red: #d63a25;
   --color-danger: #b32c1a;
+  /* The last seconds of a turn; bright enough to read on the green table. */
+  --color-urgent: #ff5a43;
   --color-danger-surface: #fdede9;
 
   --font-ui: 'Manrope', 'Noto Sans Sinhala', 'Segoe UI', sans-serif;

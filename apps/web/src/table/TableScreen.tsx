@@ -4,15 +4,13 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { suitName } from '../cards/cardNames';
 import { PlayingCard } from '../cards/PlayingCard';
 import { SuitIcon } from '../cards/SuitIcon';
-import { tokenScore } from '../state/selectors';
-import { Countdown } from '../ui/Countdown';
+import { findMe, tokenScore } from '../state/selectors';
 import { ScoreBars } from '../ui/ScoreBars';
 import '../ui/ui.css';
-import { PlayersPanel } from './PlayersPanel';
 import './table.css';
 import { TRUMP_CHOICES, handCardState, sortHand, tableStatus } from './tableStatus';
 import { TrickArea } from './TrickArea';
-import { useIsWide } from './useIsWide';
+import { TurnAvatar, type TurnClock } from './TurnAvatar';
 
 interface TableScreenProps {
   room: RoomSnapshot;
@@ -38,6 +36,7 @@ interface HeldTrick {
   readonly trick: CompletedTrick;
 }
 
+/** The same layout at every size; a wide window only scales it up (see table.css). */
 export function TableScreen({
   room,
   game,
@@ -47,7 +46,6 @@ export function TableScreen({
   onLeave,
 }: TableScreenProps): ReactElement {
   const { view, seq } = game;
-  const isWide = useIsWide();
   const [heldTrick, setHeldTrick] = useState<HeldTrick | null>(null);
   const [seenSeq, setSeenSeq] = useState<number | null>(null);
   const [moveError, setMoveError] = useState<MoveError | null>(null);
@@ -68,7 +66,6 @@ export function TableScreen({
     const timer = setTimeout(() => setHeldTrick(null), TRICK_SHOWN_MS);
     return () => clearTimeout(timer);
   }, [heldSeq]);
-  const isShowingWonTrick = heldTrick !== null;
   const trickWinner = heldTrick?.trick.winner ?? null;
 
   const report = async (request: Promise<Ack>): Promise<void> => {
@@ -78,156 +75,122 @@ export function TableScreen({
 
   const status = tableStatus(view, room, trickWinner);
   const isCallingTrump = view.phase === 'calling-trump' && view.caller === view.seat;
+  // While a won trick is shown nobody is "on turn" yet, so there is no ring or banner.
+  const isMyAction = trickWinner === null && view.turn === view.seat;
+  const turnClock: TurnClock | null =
+    trickWinner === null && game.deadline !== null
+      ? { deadline: game.deadline, startedAt: game.serverNow }
+      : null;
   const hand = sortHand(view.hand);
   // An error belongs to the turn it happened on; the next state clears it.
   const errorText = moveError?.seq === seq ? moveError.message : null;
-
-  const trumpPill = (
-    <div className={`table__trump${view.trump ? ' table__trump--called' : ''}`}>
-      {view.trump ? (
-        <>
-          <span>Trump</span>
-          <SuitIcon suit={view.trump} size={18} />
-          <span className="visually-hidden">{suitName(view.trump)}</span>
-        </>
-      ) : (
-        <span>Round {view.roundNumber} · no trump yet</span>
-      )}
-    </div>
-  );
-
-  const trick = (
-    <TrickArea
-      room={room}
-      view={view}
-      clockOffset={clockOffset}
-      trick={heldTrick?.trick ?? view.currentTrick}
-      winner={trickWinner}
-      cardSize={isWide ? 'large' : 'table'}
-    />
-  );
-
-  const statusBlock = (
-    <div className="table__status">
-      <div className="table__status-text" role="status">
-        <h1 className="table__title">{status.title}</h1>
-        {status.hint && <p className="table__hint">{status.hint}</p>}
-      </div>
-      {game.deadline !== null && !isShowingWonTrick && (
-        <Countdown
-          deadline={game.deadline}
-          startedAt={game.serverNow}
-          clockOffset={clockOffset}
-          label="Time left"
-        />
-      )}
-    </div>
-  );
-
-  const trumpPicker = isCallingTrump && (
-    <div className="table__suits" role="group" aria-label="Choose trump">
-      {TRUMP_CHOICES.map((suit) => (
-        <button
-          key={suit}
-          type="button"
-          className={`table__suit table__suit--${suit}`}
-          onClick={() => void report(onCallTrump(suit))}
-        >
-          <SuitIcon suit={suit} size={24} />
-          <span>{suitName(suit)}</span>
-        </button>
-      ))}
-    </div>
-  );
-
-  const handClasses = [
-    'table__hand',
-    hand.length > CROWDED_HAND ? 'table__hand--crowded' : '',
-    isWide ? 'table__hand--felt' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const handRow = (
-    <ul className={handClasses} aria-label="Your hand">
-      {hand.map((card) => (
-        <li key={`${card.rank}-${card.suit}`}>
-          <PlayingCard
-            card={card}
-            size={isWide ? 'large' : 'hand'}
-            state={handCardState(view, card)}
-            onPlay={(played) => void report(onPlayCard(played))}
-          />
-        </li>
-      ))}
-    </ul>
-  );
-
-  const notes = (
-    <>
-      {errorText && (
-        <p className="error-text" role="alert">
-          {errorText}
-        </p>
-      )}
-      {isCallingTrump && (
-        <p className="table__footnote">If time runs out, the suit you hold most of is called.</p>
-      )}
-    </>
-  );
-
-  const leaveButton = (
-    <button type="button" className="button button--quiet table__leave" onClick={onLeave}>
-      Leave match
-    </button>
-  );
-
-  if (isWide) {
-    // Desktop (docs/design/TableDesktop): the hand sits on the table and a side
-    // panel carries the turn, the tokens and the players.
-    return (
-      <div className="screen screen--wide table table--wide">
-        <section className="table__felt">
-          <header className="table__header">
-            <span className="eyebrow">
-              Room {room.code} · Round {view.roundNumber}
-            </span>
-            {trumpPill}
-          </header>
-          {trick}
-          {handRow}
-        </section>
-        <aside className="sheet table__panel" aria-label="Match">
-          {statusBlock}
-          {trumpPicker}
-          {notes}
-          <section className="table__tokens" aria-labelledby="tokens-heading">
-            <h2 id="tokens-heading" className="eyebrow">
-              Tokens · first to {view.config.tokenTarget}
-            </h2>
-            <ScoreBars score={tokenScore(view)} tone="sheet" />
-          </section>
-          <PlayersPanel room={room} view={view} clockOffset={clockOffset} />
-          {leaveButton}
-        </aside>
-      </div>
-    );
-  }
+  const handClasses = `table__hand${hand.length > CROWDED_HAND ? ' table__hand--crowded' : ''}`;
 
   return (
-    <div className="screen table">
+    <div className="screen screen--wide table">
       <section className="table__felt">
         <header className="table__header">
           <ScoreBars score={tokenScore(view)} />
-          {trumpPill}
+          <div className={`table__trump${view.trump ? ' table__trump--called' : ''}`}>
+            {view.trump ? (
+              <>
+                <span>Trump</span>
+                <SuitIcon suit={view.trump} size={18} />
+                <span className="visually-hidden">{suitName(view.trump)}</span>
+              </>
+            ) : (
+              <span>Round {view.roundNumber} · no trump yet</span>
+            )}
+          </div>
         </header>
-        {trick}
+        <TrickArea
+          room={room}
+          view={view}
+          clockOffset={clockOffset}
+          trick={heldTrick?.trick ?? view.currentTrick}
+          winner={trickWinner}
+          turnClock={turnClock}
+        />
       </section>
-      <section className="sheet table__sheet" aria-label="Your turn and hand">
-        {statusBlock}
-        {trumpPicker}
-        {handRow}
-        {notes}
-        {leaveButton}
+
+      <section className="sheet table__sheet" aria-label="Your seat and hand">
+        {/* The heading is the spoken version; the banner is the same words for the eye. */}
+        <h1 className="visually-hidden">{status.title}</h1>
+        {isMyAction && (
+          <p className="table__banner" aria-hidden="true">
+            Your turn
+          </p>
+        )}
+
+        <div className="table__me">
+          <div
+            className="table__me-seat"
+            role="group"
+            aria-label={isMyAction ? 'You, to play' : 'You'}
+          >
+            <TurnAvatar
+              name={findMe(room)?.name ?? 'You'}
+              tone="sheet"
+              isOnTurn={isMyAction}
+              clock={isMyAction ? turnClock : null}
+              clockOffset={clockOffset}
+              showSeconds
+            />
+          </div>
+          <div className="table__me-text" role="status">
+            <span className="table__me-name">You</span>
+            <span className="table__me-line">{isMyAction ? status.hint : status.title}</span>
+            {!isMyAction && status.hint && <span className="table__hint">{status.hint}</span>}
+          </div>
+        </div>
+
+        {isCallingTrump && (
+          <div className="table__suits" role="group" aria-label="Choose trump">
+            {TRUMP_CHOICES.map((suit) => (
+              <button
+                key={suit}
+                type="button"
+                className={`table__suit table__suit--${suit}`}
+                onClick={() => void report(onCallTrump(suit))}
+              >
+                <SuitIcon suit={suit} size={24} />
+                <span>{suitName(suit)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <ul className={handClasses} aria-label="Your hand">
+          {hand.map((card) => (
+            <li key={`${card.rank}-${card.suit}`}>
+              <PlayingCard
+                card={card}
+                size="hand"
+                state={handCardState(view, card)}
+                onPlay={(played) => void report(onPlayCard(played))}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {(errorText || isCallingTrump) && (
+          <div className="table__notes">
+            {errorText && (
+              <p className="error-text" role="alert">
+                {errorText}
+              </p>
+            )}
+            {isCallingTrump && (
+              <p className="table__footnote">
+                If time runs out, the suit you hold most of is called.
+              </p>
+            )}
+          </div>
+        )}
+
+        <button type="button" className="button button--quiet table__leave" onClick={onLeave}>
+          Leave match
+        </button>
       </section>
     </div>
   );

@@ -1,9 +1,10 @@
 import type { PlayerView, Seat, Trick } from '@omi/engine';
 import type { RoomSnapshot } from '@omi/protocol';
 import type { ReactElement } from 'react';
-import { PlayingCard, type CardSize } from '../cards/PlayingCard';
+import { PlayingCard } from '../cards/PlayingCard';
 import { playerAtSeat, seatLayout, seatName, trickScore } from '../state/selectors';
 import { SeatBadge } from './SeatBadge';
+import type { TurnClock } from './TurnAvatar';
 
 interface TrickAreaProps {
   room: RoomSnapshot;
@@ -13,7 +14,8 @@ interface TrickAreaProps {
   trick: Trick | null;
   /** Set while a finished trick is being shown, to ring the winning card. */
   winner: Seat | null;
-  cardSize?: CardSize;
+  /** The countdown for the seat on turn, or null when there is none to show. */
+  turnClock: TurnClock | null;
 }
 
 type Position = 'top' | 'left' | 'right' | 'bottom';
@@ -28,7 +30,7 @@ export function TrickArea({
   clockOffset,
   trick,
   winner,
-  cardSize = 'table',
+  turnClock,
 }: TrickAreaProps): ReactElement {
   const layout = seatLayout(view);
   const tricks = trickScore(view);
@@ -38,14 +40,13 @@ export function TrickArea({
     const play = trick?.plays.find((each) => each.seat === seat);
     if (!play) {
       return position === 'bottom' && isWaitingForMe ? (
-        <div className={`trick__slot trick__slot--${cardSize}`}>Your card</div>
+        <div className="trick__slot">Your card</div>
       ) : null;
     }
     const who = seat === view.seat ? 'you' : seatName(room, view, seat);
     return (
       <PlayingCard
         card={play.card}
-        size={cardSize}
         state={winner === seat ? 'winner' : 'idle'}
         tilt={TILT[position]}
         note={`${trick?.leader === seat ? 'led' : 'played'} by ${who}`}
@@ -61,6 +62,7 @@ export function TrickArea({
       isPartner={isPartner}
       isDealer={view.dealer === seat}
       isOnTurn={view.turn === seat && winner === null}
+      turnClock={turnClock}
       layout={isPartner ? 'row' : 'stack'}
     />
   );
