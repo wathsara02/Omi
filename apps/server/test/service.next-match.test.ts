@@ -112,6 +112,33 @@ describe('when a match ends', () => {
     expect(harness.room('s1').players.map((player) => player.isHost)).toEqual([true, false, false]);
   });
 
+  test('leaves no timer behind for a removed player, only the lobby’s idle timer', () => {
+    const harness = createHarness({ rules: ONE_ROUND_MATCH });
+    startMatch(harness);
+    harness.service.disconnect('s3');
+    playToTheEnd(harness, ['s0', 's1', 's2']);
+    const sentBefore = harness.sent.length;
+
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(TEST_TIMINGS.holdMs);
+
+    expect(harness.sent).toHaveLength(sentBefore);
+    expect(harness.room('s0').players).toHaveLength(3);
+  });
+
+  test('a connected player who reloads keeps their place and is sent only the lobby', () => {
+    const { harness, code, sessions } = afterMatch();
+    const token = sessions[1]?.token as string;
+
+    mustOk(harness.service.resume('s1-again', { code, token }));
+
+    expect(harness.room('s1-again')).toMatchObject({ status: 'lobby' });
+    expect(harness.room('s1-again').players).toHaveLength(4);
+    expect(
+      harness.sent.some((each) => each.socketId === 's1-again' && each.event === 'game:state'),
+    ).toBe(false);
+  });
+
   test('a removed player cannot resume the old seat', () => {
     const harness = createHarness({ rules: ONE_ROUND_MATCH });
     const { code, sessions } = startMatch(harness);
@@ -167,6 +194,10 @@ describe('the next match', () => {
     expect(errorOf(harness.service.start('s0'))).toBe('not-enough-players');
 
     mustOk(harness.service.joinRoom('s4', { code, name: 'New' }));
+    // Nothing of the match that was played reaches the newcomer.
+    expect(harness.sent.some((each) => each.socketId === 's4' && each.event === 'game:state')).toBe(
+      false,
+    );
     mustOk(harness.service.start('s0'));
 
     expect(harness.room('s4').status).toBe('playing');
@@ -190,5 +221,17 @@ describe('the next match', () => {
     mustOk(harness.service.start('s0'));
 
     expect(harness.room('s0').status).toBe('playing');
+  });
+
+  test('is never removed for being idle, however long it runs', () => {
+    const { harness, code } = afterMatch();
+    mustOk(harness.service.start('s0'));
+
+    // One turn timer short of the idle time: the match is still in its first round.
+    vi.advanceTimersByTime(turnMs * 20);
+    expect(harness.room('s0').status).toBe('playing');
+    vi.advanceTimersByTime(TEST_TIMINGS.idleRoomMs - turnMs * 20);
+
+    expect(harness.store.find(code)).toBeDefined();
   });
 });
