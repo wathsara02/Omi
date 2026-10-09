@@ -1,8 +1,9 @@
+import { captureScreen } from '../support/screens';
 import { expect, hand, matchEnd, playUntil, startMatch, test } from '../support/table';
 
 const MATCH_TIMEOUT_MS = 480_000;
 
-test('a match is played to 10 tokens, then the room plays another', async ({ table }) => {
+test('a match is played to 10 tokens, then the room plays another', async ({ table }, testInfo) => {
   const { players, host } = table;
   const [, stayer, ...leavers] = players;
   if (stayer === undefined) throw new Error('Not enough players');
@@ -34,6 +35,10 @@ test('a match is played to 10 tokens, then the room plays another', async ({ tab
       }
     }
     expect(winners).toBe(2);
+  });
+
+  await test.step('the match result fits at each width', async () => {
+    await captureScreen(host.page, 'match-end', testInfo);
   });
 
   await test.step('the room is a lobby again, with all four in it', async () => {
