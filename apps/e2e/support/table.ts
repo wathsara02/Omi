@@ -51,9 +51,16 @@ export const joinRoom = async (player: Player, code: string): Promise<void> => {
   await player.page.waitForURL(ROOM_URL);
 };
 
-/** Four players in one lobby, the match not yet started. */
-export const fillLobby = async (browser: Browser): Promise<Table> => {
+/**
+ * Four players in one lobby, the match not yet started. `prepare` is given each
+ * player before their page loads anything.
+ */
+export const fillLobby = async (
+  browser: Browser,
+  prepare: (player: Player) => void = () => undefined,
+): Promise<Table> => {
   const players = await Promise.all(PLAYER_NAMES.map((name) => openPlayer(browser, name)));
+  players.forEach(prepare);
   const [host, ...others] = players;
   if (host === undefined) throw new Error('No players');
   const code = await createRoom(host);
@@ -150,11 +157,15 @@ interface Fixtures {
   table: Table;
 }
 
+export const closeTable = async (table: Table): Promise<void> => {
+  await Promise.all(table.players.map((player) => player.context.close()));
+};
+
 export const test = base.extend<Fixtures>({
   table: async ({ browser }, use) => {
     const table = await fillLobby(browser);
     await use(table);
-    await Promise.all(table.players.map((player) => player.context.close()));
+    await closeTable(table);
   },
 });
 
