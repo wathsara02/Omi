@@ -1,3 +1,4 @@
+import type { GameSnapshot, RoomSnapshot } from '@omi/protocol';
 import type { ReactElement } from 'react';
 import { HomeScreen } from './home/HomeScreen';
 import { LobbyScreen } from './lobby/LobbyScreen';
@@ -6,6 +7,7 @@ import { loadName, loadSession } from './net/session';
 import { ClosedNotice, ReconnectingNotice, ReplacedNotice } from './notices/Notices';
 import { MatchEndScreen } from './results/MatchEndScreen';
 import { RoundResultScreen } from './results/RoundResultScreen';
+import { useRoundEnd } from './state/roundEnd';
 import type { GameController } from './state/useGame';
 import { useGame } from './state/useGame';
 import { TableScreen } from './table/TableScreen';
@@ -58,22 +60,46 @@ function RoomView({ game, code }: { game: GameController; code: string }): React
     );
   }
   if (state.game === null) return <Waiting message="Dealing…" />;
+  return (
+    <MatchView room={room} snapshot={state.game} clockOffset={state.clockOffset} game={game} />
+  );
+}
 
-  const { phase } = state.game.view;
-  if (phase === 'match-over') {
-    return <MatchEndScreen room={room} game={state.game} onHome={() => void game.leaveRoom()} />;
+interface MatchViewProps {
+  room: RoomSnapshot;
+  snapshot: GameSnapshot;
+  clockOffset: number;
+  game: GameController;
+}
+
+/** The table, or what follows a round: its last trick, its result, then the match result. */
+function MatchView({ room, snapshot, clockOffset, game }: MatchViewProps): ReactElement {
+  const { stage, matchResult } = useRoundEnd(snapshot);
+  const { phase } = snapshot.view;
+  const isOver = phase === 'match-over';
+  const leave = (): void => void game.leaveRoom();
+
+  if (isOver && stage === null) {
+    return <MatchEndScreen room={room} game={snapshot} onHome={leave} />;
   }
-  if (phase === 'round-scored') {
-    return <RoundResultScreen room={room} game={state.game} clockOffset={state.clockOffset} />;
+  if ((isOver || phase === 'round-scored') && stage !== 'trick') {
+    return (
+      <RoundResultScreen
+        room={room}
+        game={snapshot}
+        clockOffset={clockOffset}
+        matchResult={isOver ? matchResult : null}
+      />
+    );
   }
   return (
     <TableScreen
       room={room}
-      game={state.game}
-      clockOffset={state.clockOffset}
+      game={snapshot}
+      clockOffset={clockOffset}
       onCallTrump={game.callTrump}
       onPlayCard={game.playCard}
-      onLeave={() => void game.leaveRoom()}
+      onLeave={leave}
     />
   );
 }

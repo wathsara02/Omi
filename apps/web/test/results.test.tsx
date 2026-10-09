@@ -144,6 +144,25 @@ describe('RoundResultScreen', () => {
 
     expect(screen.getByText('You deal')).toBeInTheDocument();
   });
+
+  test('after the last round, counts down to the match result and names no next dealer', () => {
+    const { state } = autoUntil(newMatch(), (each) => each.phase === 'match-over');
+    const game = snapshotFor(state, 0, { deadline: null });
+    render(
+      <RoundResultScreen
+        room={roomSnapshot({ status: 'finished' })}
+        game={game}
+        clockOffset={SERVER_NOW - Date.now()}
+        matchResult={{ deadline: SERVER_NOW + 4500, startedAt: SERVER_NOW - 500 }}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/the round|Kapothi/);
+    expect(screen.getByText('Match over')).toBeInTheDocument();
+    expect(screen.getByRole('timer', { name: /^Match result in: 0:0\d$/ })).toBeInTheDocument();
+    expect(screen.queryByText('Next round')).not.toBeInTheDocument();
+    expect(screen.queryByText(/deals?$/)).not.toBeInTheDocument();
+  });
 });
 
 describe('MatchEndScreen', () => {

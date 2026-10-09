@@ -1,5 +1,6 @@
 import type { GameSnapshot, RoomSnapshot } from '@omi/protocol';
 import type { ReactElement } from 'react';
+import type { MatchResultClock } from '../state/roundEnd';
 import { seatName, tokenScore } from '../state/selectors';
 import { Countdown } from '../ui/Countdown';
 import { ScoreBars } from '../ui/ScoreBars';
@@ -11,12 +12,15 @@ interface RoundResultScreenProps {
   room: RoomSnapshot;
   game: GameSnapshot;
   clockOffset: number;
+  /** Set when this round ended the match: the match result follows, not another round. */
+  matchResult?: MatchResultClock | null;
 }
 
 export function RoundResultScreen({
   room,
   game,
   clockOffset,
+  matchResult = null,
 }: RoundResultScreenProps): ReactElement | null {
   const { view } = game;
   if (view.lastRound === null) return null;
@@ -25,6 +29,9 @@ export function RoundResultScreen({
   // The deal passes to this round's trump caller.
   const nextDealer = seatName(room, view, view.caller);
   const dealsText = nextDealer === 'You' ? 'You deal' : `${nextDealer} deals`;
+  const next: MatchResultClock | null =
+    matchResult ??
+    (game.deadline === null ? null : { deadline: game.deadline, startedAt: game.serverNow });
 
   return (
     <div className="screen result">
@@ -50,15 +57,15 @@ export function RoundResultScreen({
 
       <footer className="sheet result__footer">
         <div className="result__next">
-          <span className="result__next-title">Next round</span>
-          <span className="muted">{dealsText}</span>
+          <span className="result__next-title">{matchResult ? 'Match over' : 'Next round'}</span>
+          <span className="muted">{matchResult ? 'The match result is next' : dealsText}</span>
         </div>
-        {game.deadline !== null && (
+        {next !== null && (
           <Countdown
-            deadline={game.deadline}
-            startedAt={game.serverNow}
+            deadline={next.deadline}
+            startedAt={next.startedAt}
             clockOffset={clockOffset}
-            label="Next round in"
+            label={matchResult ? 'Match result in' : 'Next round in'}
             tone="calm"
           />
         )}

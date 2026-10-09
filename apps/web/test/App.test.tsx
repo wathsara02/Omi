@@ -1,11 +1,13 @@
+import { seedFromInteger } from '@omi/engine';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { App } from '../src/App';
 import { createConnection } from '../src/net/connection';
 import { loadSession, saveSession } from '../src/net/session';
 import { FakeSocket, failed, ok } from './fakeSocket';
 import {
+  apply,
   autoUntil,
   lobbySnapshot,
   newMatch,
@@ -136,6 +138,7 @@ describe('in a room', () => {
     ]);
   });
 
+  // A state that arrives with no events is a reload or a reconnect: nothing is replayed.
   test('shows the round result between rounds', () => {
     const { socket } = seated();
     const { state } = autoUntil(newMatch(), (each) => each.phase === 'round-scored');
@@ -160,6 +163,88 @@ describe('in a room', () => {
     await user.click(screen.getByRole('button', { name: 'Back to home' }));
 
     expect(await screen.findByRole('button', { name: 'Create a room' })).toBeInTheDocument();
+  });
+});
+
+describe('when a round ends while the player is watching', () => {
+  const TRICK_SHOWN_MS = 1600;
+  const FINAL_RESULT_MS = 5000;
+
+  /** Delivers the state that ended a round or the match, with the events that came with it. */
+  const endWith = (phase: 'round-scored' | 'match-over') => {
+    vi.useFakeTimers();
+    const { socket } = open('/r/KXT4P9');
+    const step = autoUntil(newMatch(), (each) => each.phase === phase);
+    const isOver = phase === 'match-over';
+    act(() => {
+      socket.goOnline();
+      socket.receive('room:state', roomSnapshot(isOver ? { status: 'finished' } : {}));
+      socket.receive(
+        'game:state',
+        snapshotFor(step.state, 0, {
+          events: step.events,
+          seq: 40,
+          ...(isOver ? { deadline: null } : {}),
+        }),
+      );
+    });
+    return { socket, state: step.state };
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('keeps the last trick on the table, then shows the round result', () => {
+    endWith('round-scored');
+
+    expect(screen.getByRole('heading', { name: /took the trick$/ })).toBeInTheDocument();
+    expect(screen.queryByText('Next round')).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(TRICK_SHOWN_MS));
+
+    expect(screen.getByText('Next round')).toBeInTheDocument();
+  });
+
+  test('shows the winning trick, then the last round’s result, then the match result', () => {
+    endWith('match-over');
+
+    expect(screen.getByRole('heading', { name: /took the trick$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /the match$/ })).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(TRICK_SHOWN_MS));
+
+    expect(screen.getByRole('timer', { name: /^Match result in/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/the round|Kapothi/);
+    expect(screen.queryByRole('heading', { name: /the match$/ })).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(FINAL_RESULT_MS));
+
+    expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to home' })).toBeInTheDocument();
+  });
+
+  test('a later state for the finished match does not cut the ending short', () => {
+    const { socket, state } = endWith('match-over');
+    act(() => vi.advanceTimersByTime(TRICK_SHOWN_MS));
+
+    act(() => socket.receive('game:state', snapshotFor(state, 0, { seq: 41, deadline: null })));
+
+    expect(screen.getByRole('timer', { name: /^Match result in/ })).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(FINAL_RESULT_MS));
+
+    expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
+  });
+
+  test('goes to the table as soon as the next round is dealt', () => {
+    const { socket, state } = endWith('round-scored');
+    const dealt = apply(state, { type: 'next-round', seed: seedFromInteger(7) });
+
+    act(() => socket.receive('game:state', snapshotFor(dealt.state, 0, { seq: 41 })));
+
+    expect(screen.queryByRole('heading', { name: /took the trick$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /nam(e|ing) trump$/i })).toBeInTheDocument();
   });
 });
 

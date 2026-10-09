@@ -59,9 +59,10 @@ export const tableStatus = (
 ): TableStatus => {
   if (trickWinner !== null) {
     const winner = seatName(room, view, trickWinner);
+    const leadsNext = winner === 'You' ? 'You lead next.' : `${winner} leads next.`;
     return {
       title: `${winner} took the trick`,
-      hint: winner === 'You' ? 'You lead next.' : `${winner} leads next.`,
+      hint: view.phase === 'playing' ? leadsNext : 'That was the last trick of the round.',
     };
   }
   if (view.phase === 'calling-trump') {

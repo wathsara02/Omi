@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { suitName } from '../cards/cardNames';
 import { PlayingCard } from '../cards/PlayingCard';
 import { SuitIcon } from '../cards/SuitIcon';
+import { TRICK_SHOWN_MS } from '../state/roundEnd';
 import { findMe, tokenScore } from '../state/selectors';
 import { ScoreBars } from '../ui/ScoreBars';
 import '../ui/ui.css';
@@ -21,8 +22,6 @@ interface TableScreenProps {
   onLeave: () => void;
 }
 
-/** How long a finished trick stays on the table before the next one is shown. */
-const TRICK_SHOWN_MS = 1600;
 const CROWDED_HAND = 6;
 const MS_PER_SECOND = 1000;
 
@@ -35,6 +34,8 @@ interface MoveError {
 interface HeldTrick {
   readonly seq: number;
   readonly trick: CompletedTrick;
+  /** The trick that ended the round: no next trick is coming to replace it. */
+  readonly isLast: boolean;
 }
 
 /** The same layout at every size; a wide window only scales it up (see table.css). */
@@ -57,16 +58,20 @@ export function TableScreen({
   if (seenSeq !== seq) {
     setSeenSeq(seq);
     const wasWon = game.events.some((event) => event.type === 'trick-won');
-    if (wasWon && view.phase === 'playing' && view.previousTrick !== null) {
-      setHeldTrick({ seq, trick: view.previousTrick });
+    if (wasWon && view.previousTrick !== null) {
+      setHeldTrick({ seq, trick: view.previousTrick, isLast: view.phase !== 'playing' });
+    } else if (heldTrick?.isLast) {
+      setHeldTrick(null);
     }
   }
   const heldSeq = heldTrick?.seq;
+  const isLastTrick = heldTrick?.isLast ?? false;
   useEffect(() => {
-    if (heldSeq === undefined) return undefined;
+    // A round's last trick stays until the result replaces this screen.
+    if (heldSeq === undefined || isLastTrick) return undefined;
     const timer = setTimeout(() => setHeldTrick(null), TRICK_SHOWN_MS);
     return () => clearTimeout(timer);
-  }, [heldSeq]);
+  }, [heldSeq, isLastTrick]);
   const trickWinner = heldTrick?.trick.winner ?? null;
 
   const report = async (request: Promise<Ack>): Promise<void> => {

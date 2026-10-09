@@ -1,12 +1,13 @@
 import type { Seat } from '@omi/engine';
 import type { GameSnapshot, RoomSnapshot } from '@omi/protocol';
 import { act, render, screen, within } from '@testing-library/react';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TableScreen } from '../src/table/TableScreen';
 import { ok } from './fakeSocket';
 import {
   SERVER_NOW,
   auto,
+  autoUntil,
   newMatch,
   playingSnapshot,
   roomSnapshot,
@@ -234,6 +235,27 @@ describe('while a won trick is on the table', () => {
     expect(screen.queryByRole('img', RING)).not.toBeInTheDocument();
     expect(screen.queryByText('Your turn', { selector: '.table__banner' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('You took the trick');
+  });
+});
+
+describe('while the last trick of a round is on the table', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('keeps the trick, with no ring or banner, and promises no next lead', () => {
+    vi.useFakeTimers();
+    const step = autoUntil(newMatch(), (each) => each.phase === 'round-scored');
+    show(snapshotFor(step.state, 0, { events: step.events, seq: 40 }));
+
+    // The screen that follows is the caller's to show; the table never clears the trick itself.
+    act(() => vi.advanceTimersByTime(5000));
+
+    expect(screen.getByRole('status')).toHaveTextContent(/took the trick/);
+    expect(screen.getByRole('status')).toHaveTextContent('That was the last trick of the round.');
+    expect(screen.getByRole('status')).not.toHaveTextContent(/leads? next/);
+    expect(screen.queryByRole('img', RING)).not.toBeInTheDocument();
+    expect(screen.queryByText('Your turn', { selector: '.table__banner' })).not.toBeInTheDocument();
   });
 });
 
