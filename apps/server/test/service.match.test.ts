@@ -205,7 +205,7 @@ describe('between rounds and at the end', () => {
     expect(harness.game('s0').events).toMatchObject([{ type: 'round-started', roundNumber: 2 }]);
   });
 
-  test('marks the room finished when a team reaches the target, and stops all timers', () => {
+  test('returns the room to the lobby when a team reaches the target, and stops all timers', () => {
     const harness = started();
 
     for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
@@ -213,9 +213,9 @@ describe('between rounds and at the end', () => {
       vi.advanceTimersByTime(TEST_TIMINGS.roundPauseMs);
     }
 
-    expect(harness.room('s0').status).toBe('finished');
+    expect(harness.room('s0').status).toBe('lobby');
     expect(harness.game('s0').view.winner).not.toBeNull();
-    // Only the idle timer of the finished room is left.
+    // Only the idle timer of the lobby is left.
     expect(vi.getTimerCount()).toBe(1);
   });
 });

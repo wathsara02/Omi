@@ -38,7 +38,7 @@ export type Ack<T = null> =
 
 export type AckCallback<T = null> = (response: Ack<T>) => void;
 
-export type RoomStatus = 'lobby' | 'playing' | 'finished';
+export type RoomStatus = 'lobby' | 'playing';
 
 /** Removed by the host, or the room sat idle too long. */
 export type RoomClosedReason = 'kicked' | 'expired';

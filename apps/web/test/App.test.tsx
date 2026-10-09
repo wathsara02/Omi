@@ -151,16 +151,56 @@ describe('in a room', () => {
     expect(screen.getByText('Next round')).toBeInTheDocument();
   });
 
-  test('shows the match result at the end and goes home from it', async () => {
-    const { socket, user } = seated();
-    socket.respond('room:leave', () => ok(null));
+  /** The server sends the final state, then the room as the lobby it has become. */
+  const endMatch = (socket: FakeSocket): void => {
     const { state } = autoUntil(newMatch(), (each) => each.phase === 'match-over');
     act(() => {
-      socket.receive('room:state', roomSnapshot({ status: 'finished' }));
+      socket.receive('room:state', roomSnapshot());
       socket.receive('game:state', snapshotFor(state, 0, { deadline: null }));
+      socket.receive('room:state', lobbySnapshot(4));
+    });
+  };
+
+  test('keeps the match result on screen after the room has gone back to the lobby', () => {
+    const { socket } = seated();
+
+    endMatch(socket);
+
+    expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
+    expect(screen.getByText('You and Nimal')).toBeInTheDocument();
+  });
+
+  test('goes from the match result back to the lobby, where the host can start again', async () => {
+    const { socket, user } = seated();
+    socket.respond('room:start', () => ok(null));
+    endMatch(socket);
+
+    await user.click(screen.getByRole('button', { name: 'Back to lobby' }));
+    expect(screen.getByRole('heading', { name: 'Players' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /start/i }));
+    expect(socket.requestsOf('room:start')).toHaveLength(1);
+  });
+
+  test('goes straight to the table if the host starts while the result is still showing', () => {
+    const { socket } = seated();
+    endMatch(socket);
+    const next = playingSnapshot(1);
+
+    act(() => {
+      socket.receive('room:state', roomSnapshot({ youId: `p${next.view.seat}` }));
+      socket.receive('game:state', { ...next, seq: 90 });
     });
 
-    await user.click(screen.getByRole('button', { name: 'Back to home' }));
+    expect(screen.getByRole('heading', { name: 'Your turn' })).toBeInTheDocument();
+  });
+
+  test('can leave the room from the match result', async () => {
+    const { socket, user } = seated();
+    socket.respond('room:leave', () => ok(null));
+    endMatch(socket);
+
+    await user.click(screen.getByRole('button', { name: 'Leave room' }));
 
     expect(await screen.findByRole('button', { name: 'Create a room' })).toBeInTheDocument();
   });
@@ -178,7 +218,7 @@ describe('when a round ends while the player is watching', () => {
     const isOver = phase === 'match-over';
     act(() => {
       socket.goOnline();
-      socket.receive('room:state', roomSnapshot(isOver ? { status: 'finished' } : {}));
+      socket.receive('room:state', roomSnapshot());
       socket.receive(
         'game:state',
         snapshotFor(step.state, 0, {
@@ -187,6 +227,8 @@ describe('when a round ends while the player is watching', () => {
           ...(isOver ? { deadline: null } : {}),
         }),
       );
+      // After the last round the room is a lobby again straight away.
+      if (isOver) socket.receive('room:state', lobbySnapshot(4));
     });
     return { socket, state: step.state };
   };
@@ -221,7 +263,7 @@ describe('when a round ends while the player is watching', () => {
     act(() => vi.advanceTimersByTime(FINAL_RESULT_MS));
 
     expect(screen.getByRole('heading', { name: /the match$/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Back to home' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to lobby' })).toBeInTheDocument();
   });
 
   test('a later state for the finished match does not cut the ending short', () => {

@@ -150,7 +150,7 @@ describe('RoundResultScreen', () => {
     const game = snapshotFor(state, 0, { deadline: null });
     render(
       <RoundResultScreen
-        room={roomSnapshot({ status: 'finished' })}
+        room={roomSnapshot()}
         game={game}
         clockOffset={SERVER_NOW - Date.now()}
         matchResult={{ deadline: SERVER_NOW + 4500, startedAt: SERVER_NOW - 500 }}
@@ -174,7 +174,9 @@ describe('MatchEndScreen', () => {
   test('tells winners and losers apart and shows the final score', () => {
     const game = finished(0);
     const didWin = game.view.winner === game.view.team;
-    render(<MatchEndScreen room={roomSnapshot()} game={game} onHome={vi.fn()} />);
+    render(
+      <MatchEndScreen room={roomSnapshot()} game={game} onLobby={vi.fn()} onLeave={vi.fn()} />,
+    );
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       didWin ? 'You won the match' : 'You lost the match',
@@ -184,7 +186,14 @@ describe('MatchEndScreen', () => {
   });
 
   test('names both teams, with the player first on their own', () => {
-    render(<MatchEndScreen room={roomSnapshot()} game={finished(0)} onHome={vi.fn()} />);
+    render(
+      <MatchEndScreen
+        room={roomSnapshot()}
+        game={finished(0)}
+        onLobby={vi.fn()}
+        onLeave={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText('You and Nimal')).toBeInTheDocument();
     expect(screen.getByText('Kamala and Sunil')).toBeInTheDocument();
@@ -192,7 +201,14 @@ describe('MatchEndScreen', () => {
 
   test('shows the other side of the result to the other team', () => {
     const game = finished(1);
-    render(<MatchEndScreen room={roomSnapshot({ youId: 'p1' })} game={game} onHome={vi.fn()} />);
+    render(
+      <MatchEndScreen
+        room={roomSnapshot({ youId: 'p1' })}
+        game={game}
+        onLobby={vi.fn()}
+        onLeave={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText('You and Sunil')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -200,12 +216,25 @@ describe('MatchEndScreen', () => {
     );
   });
 
-  test('goes home', async () => {
-    const onHome = vi.fn();
-    render(<MatchEndScreen room={roomSnapshot()} game={finished(0)} onHome={onHome} />);
+  test('offers the lobby first, and leaving the room second', async () => {
+    const onLobby = vi.fn();
+    const onLeave = vi.fn();
+    render(
+      <MatchEndScreen
+        room={roomSnapshot()}
+        game={finished(0)}
+        onLobby={onLobby}
+        onLeave={onLeave}
+      />,
+    );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Back to home' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Back to lobby' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Leave room' }));
 
-    expect(onHome).toHaveBeenCalledTimes(1);
+    expect(onLobby).toHaveBeenCalledTimes(1);
+    expect(onLeave).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByText('The host can start another match from the lobby.'),
+    ).toBeInTheDocument();
   });
 });

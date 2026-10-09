@@ -249,8 +249,10 @@ describe('bot takeover', () => {
       vi.advanceTimersByTime(turnMs);
     }
 
-    expect(harness.room('s0').status).toBe('finished');
-    expect(harness.room('s0').players.filter((player) => player.isBot)).toHaveLength(3);
+    expect(harness.game('s0').view.winner).not.toBeNull();
+    // Back in the lobby, the three who never returned are gone.
+    expect(harness.room('s0').status).toBe('lobby');
+    expect(harness.room('s0').players).toHaveLength(1);
   });
 });
 

@@ -40,6 +40,7 @@ import {
 import {
   addPlayer,
   assignSeats,
+  backToLobby,
   createRoom,
   findPlayer,
   findPlayerBySeat,
@@ -62,7 +63,7 @@ export interface Timings {
   readonly roundPauseMs: number;
   /** How long a bot waits before acting. */
   readonly botDelayMs: number;
-  /** How long a lobby may sit unchanged, or a finished room stay open, before it is removed. */
+  /** How long a lobby may sit unchanged, before or between matches, before it is removed. */
   readonly idleRoomMs: number;
 }
 
@@ -212,7 +213,8 @@ export class GameService {
     }
     // Team selection is random: seats are drawn, not taken in joining order.
     const seatedRoom = assignSeats(seated.room, shuffled(SEATS));
-    const room = this.schedule({ ...seatedRoom, status: 'playing', match: match.value, seq: 0 });
+    // The count carries on from any earlier match in this room; a new room starts at 0.
+    const room = this.schedule({ ...seatedRoom, status: 'playing', match: match.value });
     this.store.save(room);
     this.timers.clearIdle(room.code);
     this.logger.info({ room: logRef(room.code) }, 'match started');
@@ -276,7 +278,7 @@ export class GameService {
         ? removePlayer(room, player.id)
         : updatePlayer(room, player.id, {
             socketId: null,
-            holdDeadline: room.status === 'playing' ? Date.now() + this.timings.holdMs : null,
+            holdDeadline: Date.now() + this.timings.holdMs,
           });
     if (remaining === null || !hasConnectedHuman(remaining)) {
       this.removeRoom(room.code);
@@ -285,7 +287,7 @@ export class GameService {
     this.store.save(remaining);
     this.logger.info({ room: logRef(room.code), player: player.id }, 'player disconnected');
     if (remaining.status === 'playing') this.startHold(room.code, player.id);
-    if (remaining.status === 'lobby') this.armIdle(room.code);
+    else this.armIdle(room.code);
     this.sendRoom(remaining);
   }
 
@@ -313,24 +315,25 @@ export class GameService {
   }
 
   private commit(room: Room, applied: Applied): void {
-    const finished = applied.state.phase === 'match-over';
-    const next = this.schedule({
-      ...room,
-      match: applied.state,
-      seq: room.seq + 1,
-      status: finished ? 'finished' : 'playing',
-      players: finished
-        ? room.players.map((player) => ({ ...player, holdDeadline: null }))
-        : room.players,
-    });
-    this.store.save(next);
-    if (finished) {
-      this.timers.clearHolds(room.code);
-      this.armIdle(room.code);
-      this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
-      this.sendRoom(next);
+    const next = this.schedule({ ...room, match: applied.state, seq: room.seq + 1 });
+    if (applied.state.phase !== 'match-over') {
+      this.store.save(next);
+      this.sendGame(next, applied.events);
+      return;
     }
+    // The final state goes out first, to the seats that played; the room that
+    // follows no longer has seats, and is what the players return to.
     this.sendGame(next, applied.events);
+    this.timers.clearHolds(room.code);
+    this.logger.info({ room: logRef(room.code), winner: applied.state.winner }, 'match finished');
+    const lobby = backToLobby(next);
+    if (lobby === null) {
+      this.removeRoom(room.code);
+      return;
+    }
+    this.store.save(lobby);
+    this.armIdle(room.code);
+    this.sendRoom(lobby);
   }
 
   // --- timers

@@ -32,8 +32,19 @@ function Waiting({ message }: WaitingProps): ReactElement {
 /** The screen for the room in the address bar, chosen from what the server last sent. */
 function RoomView({ game, code }: { game: GameController; code: string }): ReactElement {
   const { state } = game;
-  const { room } = state;
+  const { room, result } = state;
 
+  // A match that has just ended stays on screen, though the room is a lobby again.
+  if (result !== null && result.room.code === code) {
+    return (
+      <MatchView
+        room={result.room}
+        snapshot={result.game}
+        clockOffset={state.clockOffset}
+        game={game}
+      />
+    );
+  }
   if (room === null || room.code !== code) {
     // A saved seat is either being reclaimed or about to be; a seat the server
     // has refused is forgotten, which is what lets the join form show.
@@ -80,7 +91,9 @@ function MatchView({ room, snapshot, clockOffset, game }: MatchViewProps): React
   const leave = (): void => void game.leaveRoom();
 
   if (isOver && stage === null) {
-    return <MatchEndScreen room={room} game={snapshot} onHome={leave} />;
+    return (
+      <MatchEndScreen room={room} game={snapshot} onLobby={game.backToLobby} onLeave={leave} />
+    );
   }
   if ((isOver || phase === 'round-scored') && stage !== 'trick') {
     return (

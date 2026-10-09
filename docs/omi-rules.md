@@ -116,10 +116,17 @@ These are not part of traditional Omi; they cover situations a web game must han
 - **Room expiry:** a room is removed the moment no human player is connected to
   it. This overrides the disconnect hold: if all four players drop at once, the
   match is gone.
-- **Idle rooms:** a room is also removed after 10 minutes of sitting idle: a
-  lobby that has not started, counted from the last time someone joined, left or
-  was removed, or a finished match, counted from its end. A match in progress
-  is never removed for being idle.
+- **Next match:** when a match ends, the room becomes a lobby again under the
+  same code, and each player sees the result until they go back to it. A player
+  who is not connected at that moment, including one whose seat a bot was
+  playing, is removed from the room and must join again with the code. From
+  there the lobby rules apply as before the first match: open seats can be
+  filled by anyone with the code, the host can remove players, and the host
+  starts the next match once 4 players are in. Teams are drawn at random again.
+- **Idle rooms:** a room is also removed after 10 minutes of sitting idle in the
+  lobby, counted from the last time someone joined, left or was removed, or
+  from the end of its last match. A match in progress is never removed for
+  being idle.
 - **Table talk:** no signalling of cards between partners. In-game chat, if any,
   is visible to all four players.
 - **Hidden information:** a player sees only their own hand, the cards played to

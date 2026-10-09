@@ -117,7 +117,7 @@ describe('the hold deadline of a disconnected player', () => {
     expect(player).toMatchObject({ isBot: true, holdDeadline: null });
   });
 
-  test('is not set for someone who leaves a finished match', () => {
+  test('does not apply after the match: someone who leaves then is simply gone', () => {
     const harness = createHarness({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
     const table = startMatch(harness);
     for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
@@ -127,6 +127,8 @@ describe('the hold deadline of a disconnected player', () => {
 
     harness.service.disconnect('s3');
 
-    expect(holdOf(harness, 's0', table.sessions[3]?.playerId as string)).toBeNull();
+    const ids = harness.room('s0').players.map((player) => player.id);
+    expect(ids).toHaveLength(3);
+    expect(ids).not.toContain(table.sessions[3]?.playerId);
   });
 });

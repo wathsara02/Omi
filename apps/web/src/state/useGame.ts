@@ -16,6 +16,8 @@ export interface GameController {
   startMatch(): Promise<Ack>;
   kick(playerId: string): Promise<Ack>;
   leaveRoom(): Promise<void>;
+  /** After a match: puts the result away and shows the lobby the room has become. */
+  backToLobby(): void;
   callTrump(suit: Suit): Promise<Ack>;
   playCard(card: Card): Promise<Ack>;
   /** Brings the seat back to this tab after another tab took it. */
@@ -161,6 +163,7 @@ export const useGame = (connection: Connection): GameController => {
         dispatch({ type: 'reset' });
         navigate(HOME_PATH);
       },
+      backToLobby: () => dispatch({ type: 'dismiss-result' }),
       callTrump: (suit) =>
         seq === undefined ? Promise.resolve(NOT_IN_A_MATCH) : connection.callTrump(seq, suit),
       playCard: (card) =>

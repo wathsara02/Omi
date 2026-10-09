@@ -132,7 +132,11 @@ describe('a match over real sockets', () => {
         ),
       );
     }
-    await first.waitFor<RoomSnapshot>('room:state', (room) => room.status === 'finished');
+    await first.waitFor<GameSnapshot>('game:state', (snapshot) => snapshot.view.winner !== null);
+    await first.waitFor<RoomSnapshot>(
+      'room:state',
+      (room) => room.status === 'lobby' && room.players.length === 4,
+    );
 
     expect(first.game().view.winner).not.toBeNull();
   });

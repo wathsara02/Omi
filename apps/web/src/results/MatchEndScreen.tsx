@@ -9,12 +9,19 @@ import './results.css';
 interface MatchEndScreenProps {
   room: RoomSnapshot;
   game: GameSnapshot;
-  onHome: () => void;
+  /** Puts the result away; the room is already a lobby again. */
+  onLobby: () => void;
+  onLeave: () => void;
 }
 
 const SEATS = [0, 1, 2, 3] as const;
 
-export function MatchEndScreen({ room, game, onHome }: MatchEndScreenProps): ReactElement {
+export function MatchEndScreen({
+  room,
+  game,
+  onLobby,
+  onLeave,
+}: MatchEndScreenProps): ReactElement {
   const { view } = game;
   const didWin = view.winner === view.team;
   const theirTeam = otherTeam(view.team);
@@ -65,10 +72,13 @@ export function MatchEndScreen({ room, game, onHome }: MatchEndScreenProps): Rea
           {teamRow(view.team)}
           {teamRow(theirTeam)}
         </ul>
-        <button type="button" className="button button--primary" onClick={onHome}>
-          Back to home
+        <button type="button" className="button button--primary" onClick={onLobby}>
+          Back to lobby
         </button>
-        <p className="end__note">This room closes 10 minutes after the match ends.</p>
+        <button type="button" className="button button--quiet" onClick={onLeave}>
+          Leave room
+        </button>
+        <p className="end__note">The host can start another match from the lobby.</p>
       </main>
     </div>
   );

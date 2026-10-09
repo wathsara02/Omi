@@ -57,6 +57,31 @@ export const updatePlayer = (
   ),
 });
 
+/**
+ * The room after a match: a lobby again, under the same code. Players who are
+ * not connected, bots included, are dropped; nobody keeps a seat. Returns null
+ * if that leaves nobody.
+ */
+export const backToLobby = (room: Room): Room | null => {
+  const players = room.players
+    .filter((player) => player.socketId !== null)
+    .map((player) => ({ ...player, isBot: false, seat: null, holdDeadline: null }));
+  const [longestWaiting] = players;
+  if (longestWaiting === undefined) return null;
+
+  const hostStays = players.some((player) => player.id === room.hostId);
+  return {
+    ...room,
+    status: 'lobby',
+    players,
+    hostId: hostStays ? room.hostId : longestWaiting.id,
+    match: null,
+    // Carries on, so an action meant for this match can never apply to the next.
+    seq: room.seq + 1,
+    deadline: null,
+  };
+};
+
 export const findPlayer = (room: Room, playerId: string): Player | undefined =>
   room.players.find((player) => player.id === playerId);
 

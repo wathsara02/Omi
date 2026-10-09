@@ -3,7 +3,15 @@ import { formatClock, remainingMs } from '../src/state/clock';
 import { INITIAL_STATE, reduce, type AppState } from '../src/state/gameStore';
 import { parseRoute, roomPath } from '../src/state/route';
 import { findMe, playerAtSeat, seatLayout, seatName, tokenScore } from '../src/state/selectors';
-import { SERVER_NOW, lobbySnapshot, playingSnapshot, roomSnapshot } from './fixtures';
+import {
+  SERVER_NOW,
+  autoUntil,
+  lobbySnapshot,
+  newMatch,
+  playingSnapshot,
+  roomSnapshot,
+  snapshotFor,
+} from './fixtures';
 
 const inRoom = (): AppState =>
   [
@@ -59,6 +67,50 @@ describe('reduce', () => {
     });
 
     expect(state.game).toBeNull();
+  });
+
+  describe('after a match', () => {
+    const matchOver = snapshotFor(
+      autoUntil(newMatch(), (each) => each.phase === 'match-over').state,
+      0,
+      { deadline: null },
+    );
+    const ended = (): AppState =>
+      [
+        { type: 'game', snapshot: matchOver, receivedAt: SERVER_NOW } as const,
+        { type: 'room', snapshot: lobbySnapshot(4), receivedAt: SERVER_NOW } as const,
+      ].reduce(reduce, inRoom());
+
+    test('keeps the result, with the seats it was played in, once the room is a lobby', () => {
+      const state = ended();
+
+      expect(state.room?.status).toBe('lobby');
+      expect(state.game).toBeNull();
+      expect(state.result?.game.view.phase).toBe('match-over');
+      expect(state.result?.room.players.map((player) => player.seat)).toEqual([0, 1, 2, 3]);
+    });
+
+    test('lets the result go when the player returns to the lobby', () => {
+      const state = reduce(ended(), { type: 'dismiss-result' });
+
+      expect(state.result).toBeNull();
+      expect(state.room?.status).toBe('lobby');
+    });
+
+    test('lets the result go when the next match is dealt', () => {
+      const state = [
+        { type: 'room', snapshot: roomSnapshot(), receivedAt: SERVER_NOW } as const,
+        { type: 'game', snapshot: playingSnapshot(), receivedAt: SERVER_NOW } as const,
+      ].reduce(reduce, ended());
+
+      expect(state.result).toBeNull();
+      expect(state.game?.view.phase).toBe('playing');
+    });
+
+    test('lets the result go when the room is closed or left', () => {
+      expect(reduce(ended(), { type: 'closed', reason: 'kicked' }).result).toBeNull();
+      expect(reduce(ended(), { type: 'reset' }).result).toBeNull();
+    });
   });
 
   test('keeps the table on screen when another tab takes the seat', () => {

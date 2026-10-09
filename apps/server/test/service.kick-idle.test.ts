@@ -173,11 +173,11 @@ describe('idle rooms', () => {
     expect(harness.store.find(code)?.status).toBe('playing');
   });
 
-  test('a finished room is removed after the idle time, and its players are told', () => {
+  test('after a match, the lobby is removed after the idle time, and its players are told', () => {
     const harness = createHarness({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
     const { code } = startMatch(harness);
     finishMatch(harness);
-    expect(harness.room('s0').status).toBe('finished');
+    expect(harness.room('s0').status).toBe('lobby');
 
     vi.advanceTimersByTime(idleRoomMs - roundPauseMs - 1);
     expect(harness.store.find(code)).toBeDefined();

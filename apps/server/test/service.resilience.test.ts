@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   actOnTurn,
   createHarness,
+  errorOf,
   mustOk,
   playRound,
   SOCKETS,
@@ -107,10 +108,10 @@ describe('hold timers', () => {
       else mustOk(actOnTurn(harness, present));
     }
 
-    expect(harness.room(watcher).status).toBe('finished');
-    // Only the idle timer of the finished room is left.
+    expect(harness.room(watcher).status).toBe('lobby');
+    // Only the idle timer of the lobby is left.
     expect(vi.getTimerCount()).toBe(1);
-    expect(harness.room(watcher).players.some((player) => player.isBot)).toBe(false);
+    expect(harness.room(watcher).players).toHaveLength(3);
   });
 });
 
@@ -154,7 +155,7 @@ describe('returning at other moments', () => {
     expect(harness.game('s0').view).toMatchObject({ phase: 'calling-trump', roundNumber: 2 });
   });
 
-  test('after the match has finished, still gets the final state', () => {
+  test('after the match has ended, the seat is gone and the room must be joined again', () => {
     const { harness, table } = started({ rules: { ...DEFAULT_RULES, tokenTarget: 1 } });
     for (let round = 0; round < 60 && harness.room('s0').status === 'playing'; round += 1) {
       playRound(harness);
@@ -162,12 +163,11 @@ describe('returning at other moments', () => {
     }
     harness.service.disconnect('s3');
 
-    mustOk(resume(harness, table, 's3', 'new'));
+    expect(errorOf(resume(harness, table, 's3', 'new'))).toBe('session-invalid');
+    mustOk(harness.service.joinRoom('new', { code: table.code, name: 'Back' }));
 
-    expect(harness.room('new').status).toBe('finished');
-    expect(harness.game('new').view.winner).not.toBeNull();
-    // Only the idle timer of the finished room is left.
-    expect(vi.getTimerCount()).toBe(1);
+    expect(harness.room('new')).toMatchObject({ status: 'lobby' });
+    expect(harness.room('new').players).toHaveLength(4);
   });
 });
 

@@ -96,8 +96,8 @@ describe('turn timer', () => {
       vi.advanceTimersByTime(Math.max(turnMs, roundPauseMs));
     }
 
-    expect(harness.room('s0').status).toBe('finished');
-    // Only the idle timer of the finished room is left.
+    expect(harness.room('s0').status).toBe('lobby');
+    // Only the idle timer of the lobby is left.
     expect(vi.getTimerCount()).toBe(1);
   });
 });
