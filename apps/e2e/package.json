@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@omi/engine": "workspace:*",
     "@omi/protocol": "workspace:*",
     "@omi/server": "workspace:*",

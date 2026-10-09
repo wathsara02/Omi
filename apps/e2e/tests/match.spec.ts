@@ -1,3 +1,4 @@
+import { expectAccessible } from '../support/accessibility';
 import { captureScreen } from '../support/screens';
 import { expect, hand, matchEnd, playUntil, startMatch, test } from '../support/table';
 
@@ -38,6 +39,7 @@ test('a match is played to 10 tokens, then the room plays another', async ({ tab
   });
 
   await test.step('the match result fits at each width', async () => {
+    await expectAccessible(host.page, 'match end');
     await captureScreen(host.page, 'match-end', testInfo);
   });
 
