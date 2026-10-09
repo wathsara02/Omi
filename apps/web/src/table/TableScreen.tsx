@@ -24,6 +24,7 @@ interface TableScreenProps {
 /** How long a finished trick stays on the table before the next one is shown. */
 const TRICK_SHOWN_MS = 1600;
 const CROWDED_HAND = 6;
+const MS_PER_SECOND = 1000;
 
 interface MoveError {
   readonly seq: number;
@@ -79,7 +80,7 @@ export function TableScreen({
   const isMyAction = trickWinner === null && view.turn === view.seat;
   const turnClock: TurnClock | null =
     trickWinner === null && game.deadline !== null
-      ? { deadline: game.deadline, startedAt: game.serverNow }
+      ? { deadline: game.deadline, turnMs: view.config.turnTimerSeconds * MS_PER_SECOND }
       : null;
   const hand = sortHand(view.hand);
   // An error belongs to the turn it happened on; the next state clears it.
@@ -115,19 +116,15 @@ export function TableScreen({
 
       <section className="sheet table__sheet" aria-label="Your seat and hand">
         {/* The heading is the spoken version; the banner is the same words for the eye. */}
-        <h1 className="visually-hidden">{status.title}</h1>
+        {status.title && <h1 className="visually-hidden">{status.title}</h1>}
         {isMyAction && (
           <p className="table__banner" aria-hidden="true">
             Your turn
           </p>
         )}
 
-        <div className="table__me">
-          <div
-            className="table__me-seat"
-            role="group"
-            aria-label={isMyAction ? 'You, to play' : 'You'}
-          >
+        <div className="table__me" role="group" aria-label={isMyAction ? 'You, to play' : 'You'}>
+          <div className="table__me-seat">
             <TurnAvatar
               name={findMe(room)?.name ?? 'You'}
               tone="sheet"

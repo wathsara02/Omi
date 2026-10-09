@@ -1,10 +1,10 @@
 import type { ReactElement } from 'react';
 import { useCountdown } from '../state/clock';
 
-/** When the seat on turn will be played for, and when that countdown began (server time). */
+/** When the seat on turn will be played for (server time), and how long a full turn is. */
 export interface TurnClock {
   readonly deadline: number;
-  readonly startedAt: number;
+  readonly turnMs: number;
 }
 
 interface TurnAvatarProps {
@@ -43,9 +43,9 @@ export function TurnAvatar({
   // Array.from keeps a letter with its accents in one piece.
   const initial = Array.from(name.trim())[0]?.toUpperCase() ?? '?';
 
-  const hasRing = remaining !== null && clock !== null;
-  const total = clock ? Math.max(1, clock.deadline - clock.startedAt) : 1;
-  const left = hasRing ? Math.min(1, remaining / total) : 0;
+  // Once time is up the server is about to act; an empty ring and a "0" would only mislead.
+  const hasRing = remaining !== null && remaining > 0 && clock !== null;
+  const left = hasRing ? Math.min(1, remaining / Math.max(1, clock.turnMs)) : 0;
   const isUrgent = hasRing && remaining <= URGENT_MS;
   const face = hasRing && showSeconds ? Math.ceil(remaining / MS_PER_SECOND) : initial;
 

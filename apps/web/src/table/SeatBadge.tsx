@@ -57,7 +57,7 @@ export function SeatBadge({
         name={name}
         tone="table"
         isOnTurn={isOnTurn}
-        clock={isOnTurn ? turnClock : null}
+        clock={isOnTurn && !isAway ? turnClock : null}
         clockOffset={clockOffset}
         isAway={isAway}
       />

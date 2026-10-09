@@ -19,16 +19,19 @@ export const formatClock = (ms: number): string => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
-/** The device clock, refreshed a few times a second while `isRunning`. */
+/**
+ * The device clock, re-read a few times a second while `isRunning`. The time
+ * is read during render, not kept in state, so the first frame after a
+ * countdown starts is already current.
+ */
 export const useNow = (isRunning: boolean): number => {
-  const [now, setNow] = useState(() => Date.now());
+  const [, setTick] = useState(0);
   useEffect(() => {
     if (!isRunning) return undefined;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
+    const timer = setInterval(() => setTick((tick) => tick + 1), TICK_MS);
     return () => clearInterval(timer);
   }, [isRunning]);
-  return now;
+  return Date.now();
 };
 
 /** Milliseconds left until `deadline`, or null when there is no deadline. */

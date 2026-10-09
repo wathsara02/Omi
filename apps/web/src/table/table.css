@@ -505,7 +505,8 @@
       'suits suits suits'
       'notes notes notes';
     align-items: center;
-    column-gap: clamp(20px, 3vw, 48px);
+    /* Rows that are absent (no trump choice, no note) must not leave gaps. */
+    gap: 0 clamp(20px, 3vw, 48px);
     padding: 34px clamp(20px, 4vw, 48px) 30px;
   }
 
@@ -529,10 +530,12 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     justify-self: center;
     width: min(100%, 760px);
+    margin-top: 18px;
   }
 
   .table__notes {
     grid-area: notes;
+    margin-top: 18px;
     text-align: center;
   }
 

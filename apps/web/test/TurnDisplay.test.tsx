@@ -1,6 +1,6 @@
 import type { Seat } from '@omi/engine';
 import type { GameSnapshot, RoomSnapshot } from '@omi/protocol';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { TableScreen } from '../src/table/TableScreen';
 import { ok } from './fakeSocket';
@@ -82,6 +82,29 @@ describe('the player’s own turn', () => {
     expect(screen.getByRole('heading', { name: 'Your turn' })).toBeInTheDocument();
   });
 
+  test('shows no ring and no zero once the time is up', () => {
+    const game = playingSnapshot(1);
+    show({ ...game, deadline: SERVER_NOW - 500 });
+
+    const me = screen.getByRole('group', { name: 'You, to play' });
+
+    expect(within(me).queryByRole('img', RING)).not.toBeInTheDocument();
+    expect(within(me).queryByText('0')).not.toBeInTheDocument();
+  });
+
+  test('measures the ring against a full turn, not against when the state arrived', () => {
+    // 3 seconds left of a 15-second turn, in a state that has only just been sent.
+    const game = playingSnapshot(1);
+    show({ ...game, deadline: SERVER_NOW + 3000, serverNow: SERVER_NOW });
+
+    const progress = screen.getByRole('img', RING).querySelector('.turn-avatar__progress');
+    const [drawn = '0', whole = '1'] = (progress as SVGElement).style.strokeDasharray.split(
+      /[ ,]+/,
+    );
+
+    expect(Number.parseFloat(drawn) / Number.parseFloat(whole)).toBeCloseTo(0.2, 1);
+  });
+
   test('turns the ring urgent for the last 5 seconds', () => {
     const calm = playingSnapshot(1);
     const { unmount } = show(calm);
@@ -140,19 +163,18 @@ describe('another player’s turn', () => {
     expect(screen.queryByRole('img', RING)).not.toBeInTheDocument();
   });
 
-  test('an away player keeps the away label and gets no ring', () => {
+  test('an away player on turn keeps the away label and gets no ring', () => {
     const { game, onTurn } = watching();
-    const away = ((onTurn + 2) % 4) as Seat;
-    const room = withPlayer(roomSnapshot({ youId: `p${game.view.seat}` }), `p${away}`, {
+    const room = withPlayer(roomSnapshot({ youId: `p${game.view.seat}` }), `p${onTurn}`, {
       isConnected: false,
       holdDeadline: SERVER_NOW + 41_000,
     });
     show(game, room);
 
-    const seat = screen.getByRole('group', { name: nameAt(away) });
+    const seat = screen.getByRole('group', { name: `${nameAt(onTurn)}, to play` });
 
     expect(within(seat).getByText('away 0:41')).toBeInTheDocument();
-    expect(within(seat).queryByRole('img', RING)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', RING)).not.toBeInTheDocument();
   });
 });
 
@@ -167,6 +189,14 @@ describe('calling trump', () => {
     expect(within(caller).getByRole('img', RING)).toBeInTheDocument();
   });
 
+  test('shows everyone else no banner while the caller decides', () => {
+    const state = newMatch();
+    const watcher = ((state.caller + 1) % 4) as Seat;
+    show(snapshotFor(state, watcher));
+
+    expect(screen.queryByText('Your turn', { selector: '.table__banner' })).not.toBeInTheDocument();
+  });
+
   test('shows the caller the banner and the ring on their own avatar', () => {
     show(trumpCallSnapshot());
 
@@ -178,6 +208,23 @@ describe('calling trump', () => {
 });
 
 describe('while a won trick is on the table', () => {
+  test('gives the next player no ring until the trick is cleared, then shows it', () => {
+    vi.useFakeTimers();
+    let step = auto(newMatch());
+    while (!step.events.some((event) => event.type === 'trick-won')) step = auto(step.state);
+    const winner = step.state.previousTrick?.winner as Seat;
+    const watcher = ((winner + 1) % 4) as Seat;
+    show(snapshotFor(step.state, watcher, { events: step.events, seq: 5 }));
+
+    expect(screen.queryByRole('img', RING)).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(1600));
+
+    const next = screen.getByRole('group', { name: `${nameAt(winner)}, to play` });
+    expect(within(next).getByRole('img', RING)).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   test('shows no ring and no banner', () => {
     let step = auto(newMatch());
     while (!step.events.some((event) => event.type === 'trick-won')) step = auto(step.state);
