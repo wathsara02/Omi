@@ -1,6 +1,7 @@
 {
   "name": "omi",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "scripts": {

@@ -104,3 +104,8 @@ settings are in [docs/deployment.md](docs/deployment.md).
 
 The screens were designed before they were built. The approved boards are kept
 in [docs/design](docs/design) as a visual reference.
+
+## Licence
+
+[MIT](LICENSE). The fonts, Manrope and Gemunu Libre, are under the SIL Open Font
+License.
