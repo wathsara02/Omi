@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { SECURITY_HEADERS } from './securityHeaders';
 
 const DEFAULT_SERVER_URL = 'http://localhost:3001';
 const COVERAGE_THRESHOLD = 80;
@@ -32,19 +33,6 @@ const contentSecurityPolicy = (serverUrl: string): Plugin => {
         `<meta http-equiv="Content-Security-Policy" content="${policy}" />`,
       ),
   };
-};
-
-/**
- * Headers the page cannot give itself: `frame-ancestors` is ignored in a <meta>
- * policy. The preview server sends them, and the end-to-end tests check that.
- * A real host must be configured to send the same set.
- */
-const SECURITY_HEADERS: Readonly<Record<string, string>> = {
-  'Content-Security-Policy': "frame-ancestors 'none'",
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
 
 export default defineConfig(({ mode }) => {
